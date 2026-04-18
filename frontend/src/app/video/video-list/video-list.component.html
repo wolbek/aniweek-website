@@ -1,0 +1,68 @@
+<div class="video-list-page">
+    <div class="header">
+      <h2>My Videos</h2>
+      <button class="btn btn-primary" (click)="goToUpload()">Upload Video</button>
+    </div>
+
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading videos...</p>
+      </div>
+    }
+
+    @if (!loading() && videos().length === 0) {
+      <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5">
+          <polygon points="23 7 16 12 23 17 23 7"/>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+        <p>No videos yet</p>
+        <button class="btn btn-secondary" (click)="goToUpload()">Upload your first video</button>
+      </div>
+    }
+
+    @if (!loading() && videos().length > 0) {
+      <div class="video-grid">
+        @for (video of videos(); track video.videoId) {
+          <div class="video-card" (click)="openVideo(video)">
+            <div class="thumbnail-wrapper">
+              @if (video.thumbnailURL) {
+                <img [src]="video.thumbnailURL" [alt]="video.originalFileName" class="thumbnail" />
+              } @else {
+                <div class="thumbnail-placeholder">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              }
+              <span class="status-badge" [attr.data-status]="video.status">{{ video.status }}</span>
+              @if (video.duration) {
+                <span class="duration-badge">{{ formatDuration(video.duration) }}</span>
+              }
+            </div>
+            <div class="card-info">
+              <p class="card-title">{{ video.originalFileName }}</p>
+              <p class="card-date">{{ video.createdAt | date:'medium' }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (totalPages() > 1) {
+        <div class="pagination">
+          <button
+            class="btn btn-secondary"
+            [disabled]="currentPage() <= 1"
+            (click)="loadPage(currentPage() - 1)"
+          >Previous</button>
+          <span class="page-info">Page {{ currentPage() }} of {{ totalPages() }}</span>
+          <button
+            class="btn btn-secondary"
+            [disabled]="currentPage() >= totalPages()"
+            (click)="loadPage(currentPage() + 1)"
+          >Next</button>
+        </div>
+      }
+    }
+  </div>

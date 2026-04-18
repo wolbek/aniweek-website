@@ -1,0 +1,10 @@
+
+project_id             = ""
+region                 = ""
+raw_bucket_name        = ""
+transcoded_bucket_name = ""
+pubsub_topic_name      = ""
+service_account_email  = ""
+worker_image           = ""
+mongodb_uri            = ""
+cdn_base_url           = ""

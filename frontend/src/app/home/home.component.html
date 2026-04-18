@@ -1,0 +1,11 @@
+@if (auth.userDataSignal(); as user) {
+  <img [src]="user.photo" />
+  <h1>Welcome, {{ user.displayName }}</h1>
+  <p class="email">{{ user.email }}</p>
+} @else {
+  <p>Loading...</p>
+}
+
+<button (click)="logout()">Logout</button>
+
+<app-livechat />

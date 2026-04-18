@@ -1,0 +1,63 @@
+<div class="player-page">
+  @if (loading()) {
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading video...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+    </div>
+  }
+
+  @if (video() && !loading()) {
+    <div class="player-wrapper">
+      <div class="video-container">
+        <video
+          #videoEl
+          class="video-element"
+          controls
+          playsinline
+          [poster]="video()!.thumbnailURL || ''"
+        ></video>
+
+        @if (qualityLevels().length > 0) {
+          <div class="quality-selector">
+            <button class="quality-btn" (click)="toggleQualityMenu()">
+              {{ currentQualityLabel() }}
+            </button>
+            @if (showQualityMenu()) {
+              <div class="quality-menu">
+                <button
+                  class="quality-option"
+                  [class.active]="currentQualityIndex() === -1"
+                  (click)="setQuality(-1)"
+                >
+                  Auto
+                </button>
+                @for (level of qualityLevels(); track level.index) {
+                  <button
+                    class="quality-option"
+                    [class.active]="currentQualityIndex() === level.index"
+                    (click)="setQuality(level.index)"
+                  >
+                    {{ level.label }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="video-info">
+        <h2>{{ video()!.originalFileName }}</h2>
+        @if (video()!.duration) {
+          <span class="duration">{{ formatDuration(video()!.duration!) }}</span>
+        }
+      </div>
+    </div>
+  }
+</div>
