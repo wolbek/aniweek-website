@@ -148,7 +148,7 @@ router.post("/", async (req, res) => {
     }
 
     const sketch = await SketchModel.create({
-      userId: dbUser.userId,
+      userId: dbUser._id, // I'll not store googleId but _id of User for populate
       contestId: contest._id,
       imageObjectPath: image.objectPath,
       imageContentType: image.contentType,
@@ -228,8 +228,11 @@ router.get("/", async (req, res) => {
 
 router.get("/me", async (req, res) => {
   try {
+    const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
+    if (!dbUser) return res.status(404).json({ message: "User not found" });
+
     const sketch = await SketchModel.findOne({
-      userId: req.user.userId,
+      userId: dbUser._id,
     }).populate("userId", ["displayName", "photo"]);
 
     console.log("sketch: ", sketch);
@@ -268,7 +271,7 @@ router.delete("/:id", async (req, res) => {
 
     const sketch = await SketchModel.findOne({
       _id: req.params.id,
-      userId: req.user.userId,
+      userId: dbUser._id,
     });
     if (!sketch) {
       return res
@@ -365,6 +368,9 @@ router.delete("/reject/:id", async (req, res) => {
 
 router.post("/vote/:id", async (req, res) => {
   try {
+    const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
+    if (!dbUser) return res.status(404).json({ message: "User not found" });
+
     const existing = await SketchModel.findOne(
       { _id: req.params.id },
       { rejected: 1 },
@@ -396,6 +402,9 @@ router.post("/vote/:id", async (req, res) => {
 
 router.delete("/vote/:id", async (req, res) => {
   try {
+    const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
+    if (!dbUser) return res.status(404).json({ message: "User not found" });
+
     const sketch = await SketchModel.findOneAndUpdate(
       { _id: req.params.id },
       {

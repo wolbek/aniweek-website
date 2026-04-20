@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const sketchSchema = mongoose.Schema(
   {
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId, // I'll not store googleId but _id of User for populate
       ref: "User",
       required: true,
     },
