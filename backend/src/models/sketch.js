@@ -33,7 +33,7 @@ const sketchSchema = mongoose.Schema(
     videoSize: {
       type: Number,
     },
-    vote: [
+    votes: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

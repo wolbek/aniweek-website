@@ -101,7 +101,7 @@ router.post("/", async (req, res) => {
     console.log("DbUser: ", dbUser);
 
     const contest = await ContestModel.findOne(
-      { status: active },
+      { status: "active" },
       { _id: 1 },
     ).lean();
 
@@ -148,7 +148,8 @@ router.post("/", async (req, res) => {
     }
 
     const sketch = await SketchModel.create({
-      userId: dbUser._id,
+      userId: dbUser.userId,
+      contestId: contest._id,
       imageObjectPath: image.objectPath,
       imageContentType: image.contentType,
       imageSize: Number(image.size),
@@ -159,7 +160,11 @@ router.post("/", async (req, res) => {
 
     console.log("sketchCreated: ", sketch);
 
-    await sendUploadNotificationToAdmin(dbUser.displayName, contest._id);
+    try {
+      await sendUploadNotificationToAdmin(dbUser.displayName, contest._id);
+    } catch (err) {
+      console.log(err);
+    }
 
     return res.status(201).json({
       message: "Sketch image and video metadata uploaded to DB.",
@@ -173,21 +178,29 @@ router.post("/", async (req, res) => {
 
 // Get sketches
 router.get("/", async (req, res) => {
+  console.log("Loaf sketch /");
   try {
     const activeContest = await ContestModel.findOne(
       { status: "active" },
       { _id: 1 },
     ).lean();
 
+    console.log("activeContest", activeContest);
     const dbSketches = await SketchModel.find({
       contestId: activeContest._id,
     })
       .populate("userId", ["displayName", "photo"])
       .lean();
-
+    console.log("dbSketches: ", dbSketches);
     let shapedSketches = [];
 
     shapedSketches = dbSketches.map((sketch) => {
+      console.log(sketch.userId._id);
+      console.log(typeof sketch.userId._id);
+      console.log(sketch.userId._id.toString() === req.user.userId);
+
+      console.log(req.user.userId);
+      console.log(typeof req.user.userId);
       return {
         _id: sketch._id,
         displayName: sketch.userId.displayName,
@@ -196,12 +209,14 @@ router.get("/", async (req, res) => {
         videoUrl: publicUrlForObject(sketch.videoObjectPath),
         createdAt: sketch.createdAt,
         votes: sketch.votes.length,
-        isOwner: sketch.userId._id === req.user.userId,
+        isOwner: sketch.userId._id.toString() === req.user.userId,
         hasVoted: sketch.votes.includes(req.user.userId),
         rejected: sketch.rejected,
         rejectedReason: sketch.rejectedReason,
       };
     });
+
+    console.log("shapedSketches:", shapedSketches);
 
     return res.status(200).json({ sketches: shapedSketches });
   } catch (err) {
@@ -218,7 +233,7 @@ router.get("/me", async (req, res) => {
     }).populate("userId", ["displayName", "photo"]);
 
     console.log("sketch: ", sketch);
-    if (!sketch) res.status(200).json(null);
+    if (!sketch) return res.status(200).json(null);
 
     const shapedSketch = {
       _id: sketch._id,
