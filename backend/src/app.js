@@ -2,7 +2,7 @@ require("dotenv").config();
 let express = require("express");
 let app = express();
 const cors = require("cors");
-const helmet = require('helmet');
+const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
@@ -23,7 +23,8 @@ mongoose
 const UserModel = require("./models/user");
 const ChatSessionModel = require("./models/chat-session");
 const ChatMessageModel = require("./models/chat-message");
-const videoRoutes = require("./routes/video");
+
+const sketchRoutes = require("./routes/sketch");
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -83,7 +84,8 @@ app.get(
     failureRedirect: `${FRONTEND_URL}/auth`,
   }),
   (req, res) => {
-    const token = jwt.sign(req.user, JWT_SECRET, { // req.user is an object, that is the payload we are providing for jwt signature.
+    const token = jwt.sign(req.user, JWT_SECRET, {
+      // req.user is an object, that is the payload we are providing for jwt signature.
       expiresIn: "24h",
     }); // Auth token has the user details
     res.redirect(`${FRONTEND_URL}/auth/callback?token=${token}`);
@@ -96,15 +98,13 @@ const verifyJwt = (req, res, next) => {
     return res.status(401).json({ message: "No token" });
   }
   try {
-    // Auth token has the user details so we are setting it to req.user
+    // Auth token has the user details (userId, displayName, email, photo) so we are setting it to req.user
     req.user = jwt.verify(header.split(" ")[1], JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ message: "Invalid token" });
   }
 };
-
-app.use("/video", verifyJwt, videoRoutes);
 
 app.get("/auth/user", verifyJwt, async (req, res) => {
   const dbUser = await UserModel.findOne({
@@ -116,6 +116,9 @@ app.get("/auth/user", verifyJwt, async (req, res) => {
   const { userId, displayName, email, photo, role } = dbUser;
   res.json({ userId, displayName, email, photo, role });
 });
+
+// Other routes
+app.use("/sketch", verifyJwt, sketchRoutes);
 
 // Socket.io livechat -----------------------------------------------------------
 
@@ -151,12 +154,12 @@ io.use((socket, next) => {
 
 io.on("connection", async (socket) => {
   let dbUser;
-  try{
+  try {
     dbUser = await UserModel.findOne({
       userId: socket.user.userId,
     }).lean();
 
-    if(!dbUser) {
+    if (!dbUser) {
       socket.disconnect(true);
       return;
     }
@@ -164,7 +167,6 @@ io.on("connection", async (socket) => {
     socket.disconnect(true);
     return;
   }
-  
 
   const isActive = !!activeSession;
   socket.emit("livechat-status", { active: isActive });
@@ -208,8 +210,8 @@ io.on("connection", async (socket) => {
 
   socket.on("send-message", async (data) => {
     if (!activeSession) return;
-    const text = typeof data?.text == "string" ? data.text.trim(): "";
-    if(!text || text.length > MAX_MESSAGE_LENGTH) return;
+    const text = typeof data?.text == "string" ? data.text.trim() : "";
+    if (!text || text.length > MAX_MESSAGE_LENGTH) return;
 
     try {
       const msg = await ChatMessageModel.create({
@@ -234,18 +236,3 @@ io.on("connection", async (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-// Graceful shutdown
-
-function shutdown(signal) {
-  console.log(`${signal} received, shutting down gracefully`);
-  server.close(()=> {
-    mongoose.connection.close(false).then(()=> {
-      process.exit(0);
-    });
-  });
-  setTimeout(()=>process.exit(1), 10_000);
-}
-
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));

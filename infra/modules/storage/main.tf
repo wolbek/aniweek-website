@@ -6,16 +6,12 @@ variable "region" {
   type = string
 }
 
-variable "raw_bucket_name" {
+variable "sketches_bucket_name" {
   type = string
 }
 
-variable "transcoded_bucket_name" {
-  type = string
-}
-
-resource "google_storage_bucket" "raw" {
-  name          = var.raw_bucket_name
+resource "google_storage_bucket" "sketches" {
+  name          = var.sketches_bucket_name
   project       = var.project_id
   location      = var.region
   storage_class = "STANDARD"
@@ -34,47 +30,24 @@ resource "google_storage_bucket" "raw" {
 
   cors {
     origin          = ["*"]
-    method          = ["PUT", "GET", "HEAD"]
-    response_header = ["Content-Type", "Content-Length"]
+    method          = ["PUT", "GET", "HEAD", "OPTIONS"]
+    response_header = ["Content-Type", "Content-Length", "Content-Disposition"]
     max_age_seconds = 3600
   }
 }
 
-resource "google_storage_bucket" "transcoded" {
-  name          = var.transcoded_bucket_name
-  project       = var.project_id
-  location      = var.region
-  storage_class = "STANDARD"
-  force_destroy = true
-
-  uniform_bucket_level_access = true
-
-  cors {
-    origin          = ["*"]
-    method          = ["GET", "HEAD", "OPTIONS"]
-    response_header = ["Content-Type", "Content-Length", "Accept-Ranges", "Content-Range", "Range"]
-    max_age_seconds = 3600
-  }
-}
-
-resource "google_storage_bucket_iam_member" "transcoded_public_read" {
-  bucket = google_storage_bucket.transcoded.name
+# Public read access so the frontend can fetch images and videos directly
+resource "google_storage_bucket_iam_member" "public_read" {
+  bucket = google_storage_bucket.sketches.name
   role   = "roles/storage.objectViewer"
   member = "allUsers"
 }
 
-output "raw_bucket_url" {
-  value = google_storage_bucket.raw.url
+output "sketches_bucket_name" {
+  value = google_storage_bucket.sketches.name
 }
 
-output "raw_bucket_name" {
-  value = google_storage_bucket.raw.name
+output "sketches_bucket_url" {
+  value = google_storage_bucket.sketches.url
 }
 
-output "transcoded_bucket_url" {
-  value = google_storage_bucket.transcoded.url
-}
-
-output "transcoded_bucket_name" {
-  value = google_storage_bucket.transcoded.name
-}
