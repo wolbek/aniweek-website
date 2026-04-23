@@ -1,5 +1,5 @@
 @if (auth.userDataSignal(); as user) {
-  <img [src]="user.photo" />
+  <img [src]="user.photo" referrerpolicy="no-referrer" />
   <h1>Welcome, {{ user.displayName }}</h1>
   <p class="email">{{ user.email }}</p>
 } @else {
@@ -94,7 +94,7 @@
         }
 
         @if (sketch.photo) {
-          <img [src]="sketch.photo" [alt]="sketch.displayName" />
+          <img [src]="sketch.photo" [alt]="sketch.displayName" referrerpolicy="no-referrer" />
           <span>{{ sketch.displayName }}</span>
           <time>{{ sketch.createdAt | date: 'mediumDate' }}</time>
         }

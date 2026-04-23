@@ -45,7 +45,6 @@ export class SketchService {
   private http = inject(HttpClient);
 
   upload(image: File, video: File): Observable<Object> {
-    console.log('Reached upload()-------------');
     return this.http
       .post<UploadUrlsResponse>('/api/sketch/upload-urls', {
         imageContentType: image.type,
@@ -60,7 +59,6 @@ export class SketchService {
             ]),
           ).pipe(
             switchMap(() => {
-              console.log('Going to call /api/sketch');
               return this.http.post('/api/sketch', {
                 image: {
                   objectPath: res.image.objectPath,

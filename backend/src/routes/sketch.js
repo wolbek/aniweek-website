@@ -25,7 +25,6 @@ const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm"]);
 
 // Create GCP signed url for image and video and share to frontend for direct upload.
 router.post("/upload-urls", async (req, res) => {
-  console.log("Reached upload-urls");
   const { imageContentType, videoContentType } = req.body;
 
   if (!ALLOWED_IMAGE_CONTENT_TYPES.has(imageContentType)) {
@@ -77,7 +76,6 @@ router.post("/upload-urls", async (req, res) => {
 
 // Upload metadata after image and video upload
 router.post("/", async (req, res) => {
-  console.log("Reached /api/sketch");
   try {
     const { image, video } = req.body;
 
@@ -98,14 +96,10 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("DbUser: ", dbUser);
-
     const contest = await ContestModel.findOne(
       { status: "active" },
       { _id: 1 },
     ).lean();
-
-    console.log("Contest: ", contest);
 
     // Sanity check: object paths must live under this user's namespace so a client can't supply someone else's path.
     const expectedPrefix = `contest-${contest._id}/user-${dbUser.userId}/`;
@@ -115,8 +109,6 @@ router.post("/", async (req, res) => {
     ) {
       return res.status(400).json({ message: "Invalid upload paths" });
     }
-
-    console.log("ExpectedPrefix: ", expectedPrefix);
 
     // Verify both files actually landed in GCS before persisting metadata.
     const [imageOk, videoOk] = await Promise.all([
@@ -137,8 +129,6 @@ router.post("/", async (req, res) => {
       contestId: contest._id,
     }).lean();
 
-    console.log("existing: ", existing);
-
     if (existing) {
       await Promise.all([
         deleteObject(existing.imageObjectPath),
@@ -158,8 +148,6 @@ router.post("/", async (req, res) => {
       videoSize: Number(video.size),
     });
 
-    console.log("sketchCreated: ", sketch);
-
     try {
       await sendUploadNotificationToAdmin(dbUser.displayName, contest._id);
     } catch (err) {
@@ -178,29 +166,21 @@ router.post("/", async (req, res) => {
 
 // Get sketches
 router.get("/", async (req, res) => {
-  console.log("Loaf sketch /");
   try {
     const activeContest = await ContestModel.findOne(
       { status: "active" },
       { _id: 1 },
     ).lean();
 
-    console.log("activeContest", activeContest);
     const dbSketches = await SketchModel.find({
       contestId: activeContest._id,
     })
       .populate("userId", ["displayName", "photo"])
       .lean();
-    console.log("dbSketches: ", dbSketches);
+
     let shapedSketches = [];
 
     shapedSketches = dbSketches.map((sketch) => {
-      console.log(sketch.userId._id);
-      console.log(typeof sketch.userId._id);
-      console.log(sketch.userId._id.toString() === req.user.userId);
-
-      console.log(req.user.userId);
-      console.log(typeof req.user.userId);
       return {
         _id: sketch._id,
         displayName: sketch.userId.displayName,
@@ -209,14 +189,12 @@ router.get("/", async (req, res) => {
         videoUrl: publicUrlForObject(sketch.videoObjectPath),
         createdAt: sketch.createdAt,
         votes: sketch.votes.length,
-        isOwner: sketch.userId._id.toString() === req.user.userId,
+        isOwner: sketch.userId._id.toString() === req.user._id,
         hasVoted: sketch.votes.includes(req.user.userId),
         rejected: sketch.rejected,
         rejectedReason: sketch.rejectedReason,
       };
     });
-
-    console.log("shapedSketches:", shapedSketches);
 
     return res.status(200).json({ sketches: shapedSketches });
   } catch (err) {
@@ -235,7 +213,6 @@ router.get("/me", async (req, res) => {
       userId: dbUser._id,
     }).populate("userId", ["displayName", "photo"]);
 
-    console.log("sketch: ", sketch);
     if (!sketch) return res.status(200).json(null);
 
     const shapedSketch = {
@@ -251,8 +228,6 @@ router.get("/me", async (req, res) => {
       rejected: sketch.rejected,
       rejectedReason: sketch.rejectedReason,
     };
-
-    console.log("shapedSketch", shapedSketch);
 
     return res.status(200).json(shapedSketch);
   } catch (err) {
