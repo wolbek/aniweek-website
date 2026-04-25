@@ -1,0 +1,8 @@
+<button (click)="showModal()">Create contest</button>
+
+@if (isModalVisible()) {
+  <div>
+    <input type="date" name="startDate" />
+    <input type="date" name="endDate" />
+  </div>
+}

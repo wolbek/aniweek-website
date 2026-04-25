@@ -8,8 +8,9 @@ npm install passport
 npm install passport-google-oauth
 npm i mongoose
 npm i socket.io
-npm i multer
 npm i nodemailer
+
+<!-- npm i multer -->
 
 Create src folder > app.js
 

@@ -25,6 +25,7 @@ const ChatSessionModel = require("./models/chat-session");
 const ChatMessageModel = require("./models/chat-message");
 
 const sketchRoutes = require("./routes/sketch");
+const contestRoutes = require("./routes/contest");
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -119,6 +120,7 @@ app.get("/auth/user", verifyJwt, async (req, res) => {
 
 // Other routes
 app.use("/sketch", verifyJwt, sketchRoutes);
+app.use("/contest", verifyJwt, contestRoutes);
 
 // Socket.io livechat -----------------------------------------------------------
 

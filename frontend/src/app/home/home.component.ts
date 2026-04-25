@@ -9,9 +9,10 @@ const MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
 
 import { Sketch, Sketches } from './services/sketch.service';
 import { FormsModule } from '@angular/forms';
+import { CreateContestComponent } from '../create-contest/create-contest.component';
 @Component({
   selector: 'app-home',
-  imports: [LivechatComponent, DatePipe, FormsModule],
+  imports: [LivechatComponent, DatePipe, FormsModule, CreateContestComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
