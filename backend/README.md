@@ -9,6 +9,7 @@ npm install passport-google-oauth
 npm i mongoose
 npm i socket.io
 npm i nodemailer
+npm i node-cron
 
 <!-- npm i multer -->
 

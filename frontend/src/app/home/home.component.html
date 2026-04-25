@@ -8,191 +8,221 @@
 
 <button (click)="logout()">Logout</button>
 
-<app-create-contest></app-create-contest>
+@if (isAdmin()) {
+  <app-create-contest [activeContest]="activeContest()" (contestToggled)="onContestToggled()" />
+}
 
-<div class="upload-section">
-  <h2>Upload Your Anime Sketch</h2>
-  <p>Select both your sketch image and a short video of you creating it.</p>
-  @if (myExistingSketch()) {
+@if (loadingContest()) {
+  <p>Loading Contest...</p>
+} @else if (activeContest(); as contest) {
+  <div>Timer</div>
+
+  <div class="contest-character">
+    <h2>This Week's character: {{ contest.characterName }}</h2>
+    <img [src]="contest.characterImage" [alt]="contest.characterName" />
+    <p>{{ contest.characterDescription }}</p>
+  </div>
+
+  <div class="upload-section">
+    <h2>Upload Your Anime Sketch</h2>
+    <p>Select both your sketch image and a short video of you creating it.</p>
+    @if (myExistingSketch()) {
+      <div>
+        <strong>You've already submitted a sketch.</strong>
+        <p>
+          Uploading again will permanently replace your previous submission &mdash; the old image
+          and video will be deleted, and any votes on it will be reset.
+        </p>
+      </div>
+    }
+  </div>
+
+  <div class="upload-pair">
+    <!-- Image upload -->
+    <div class="upload-box">
+      <label class="file-label">
+        Choose Image
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="onImageSelected($event)"
+          hidden
+        />
+      </label>
+      @if (imageSelected()) {
+        <span class="file-name">{{ imageSelected()!.name }}</span>
+      }
+      @if (imagePreviewUrl()) {
+        <div>
+          <img [src]="imagePreviewUrl()" alt="Image preview" />
+        </div>
+      }
+    </div>
+
+    <!-- Video upload -->
+    <div class="upload-box">
+      <label class="file-label">
+        Choose Video
+        <input
+          type="file"
+          accept="video/mp4,video/webm"
+          (change)="onVideoSelected($event)"
+          hidden
+        />
+      </label>
+      @if (videoSelected()) {
+        <span class="file-name">{{ videoSelected()!.name }}</span>
+      }
+      @if (videoError()) {
+        <p class="error">{{ videoError() }}</p>
+      }
+      @if (videoPreviewUrl()) {
+        <div class="preview">
+          <video [src]="videoPreviewUrl()" controls></video>
+        </div>
+      } @else {
+        <span>Upload a short video (~10 seconds) of you creating this sketch.</span>
+      }
+    </div>
+  </div>
+
+  <button (click)="onUploadClick()" [disabled]="!canUpload()">
+    @if (uploading()) {
+      Uploading...
+    } @else {
+      Upload sketch & video
+    }
+  </button>
+
+  @if (imageSelected() || videoSelected()) {
+    <button (click)="clearSelection()" [disabled]="uploading()">Cancel</button>
+  }
+
+  @if (uploadError()) {
+    <p>{{ uploadError() }}</p>
+  }
+
+  <section class="gallery-section">
+    <h2>Community sketches</h2>
+    @if (loadingSketches()) {
+      <p>Loading sketches</p>
+    } @else if (sketches().length === 0) {
+      <p>No sketches yet. Be the first to upload!</p>
+    } @else {
+      @for (sketch of sketches(); track sketch._id) {
+        <div class="sketch-wrapper">
+          <img [src]="sketch.imageUrl" loading="lazy" />
+
+          <button (click)="openImage(sketch.imageUrl)">O</button>
+
+          @if (sketch.rejected) {
+            <span>Rejected by Admin</span>
+          }
+
+          @if (sketch.photo) {
+            <img [src]="sketch.photo" [alt]="sketch.displayName" referrerpolicy="no-referrer" />
+            <span>{{ sketch.displayName }}</span>
+            <time>{{ sketch.createdAt | date: 'mediumDate' }}</time>
+          }
+
+          @if (sketch.rejected && sketch.rejectedReason) {
+            <p>Reason: {{ sketch.rejectedReason }}</p>
+          }
+
+          @if (sketch.rejected) {
+            Voting Disabled
+          } @else {
+            <button (click)="toggleVote(sketch)">{{ sketch.hasVoted ? 'Voted' : 'Upvote' }}</button>
+          }
+
+          <span>{{ sketch.votes }} {{ sketch.votes === 1 ? 'vote' : 'votes' }}</span>
+
+          @if (sketch.videoUrl) {
+            <button (click)="openVideo(sketch.videoUrl!)">Watch Creation Video</button>
+          }
+
+          @if (isAdmin()) {
+            @if (!sketch.rejected) {
+              <button (click)="openRejectForm(sketch)">Not considered for contest</button>
+            } @else {
+              <button (click)="unreject(sketch)">Restore</button>
+            }
+          }
+
+          @if (sketch.isOwner) {
+            <button (click)="requestDelete(sketch)">Delete</button>
+          }
+        </div>
+      }
+    }
+  </section>
+
+  @if (activeVideoUrl()) {
     <div>
-      <strong>You've already submitted a sketch.</strong>
-      <p>
-        Uploading again will permanently replace your previous submission &mdash; the old image and
-        video will be deleted, and any votes on it will be reset.
-      </p>
+      <button (click)="closeVideo()">Close</button>
+      <video [src]="activeVideoUrl()" controls autoplay></video>
     </div>
   }
-</div>
 
-<div class="upload-pair">
-  <!-- Image upload -->
-  <div class="upload-box">
-    <label class="file-label">
-      Choose Image
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        (change)="onImageSelected($event)"
-        hidden
-      />
-    </label>
-    @if (imageSelected()) {
-      <span class="file-name">{{ imageSelected()!.name }}</span>
-    }
-    @if (imagePreviewUrl()) {
-      <div>
-        <img [src]="imagePreviewUrl()" alt="Image preview" />
-      </div>
-    }
-  </div>
+  @if (activeImageUrl()) {
+    <div>
+      <button (click)="closeImage()">Close</button>
+      <img [src]="activeImageUrl()" />
+    </div>
+  }
 
-  <!-- Video upload -->
-  <div class="upload-box">
-    <label class="file-label">
-      Choose Video
-      <input type="file" accept="video/mp4,video/webm" (change)="onVideoSelected($event)" hidden />
-    </label>
-    @if (videoSelected()) {
-      <span class="file-name">{{ videoSelected()!.name }}</span>
-    }
-    @if (videoError()) {
-      <p class="error">{{ videoError() }}</p>
-    }
-    @if (videoPreviewUrl()) {
-      <div class="preview">
-        <video [src]="videoPreviewUrl()" controls></video>
-      </div>
-    } @else {
-      <span>Upload a short video (~10 seconds) of you creating this sketch.</span>
-    }
-  </div>
-</div>
-
-<button (click)="onUploadClick()" [disabled]="!canUpload()">Upload sketch & video</button>
-
-@if (imageSelected() || videoSelected()) {
-  <button (click)="clearSelection()" [disabled]="uploading()">Cancel</button>
-}
-
-@if (uploadError()) {
-  <p>{{ uploadError() }}</p>
-}
-
-<section class="gallery-section">
-  <h2>Community sketches</h2>
-  @if (loadingSketches()) {
-    <p>Loading sketches</p>
-  } @else if (sketches().length === 0) {
-    <p>No sketches yet. Be the first to upload!</p>
-  } @else {
-    @for (sketch of sketches(); track sketch._id) {
-      <div class="sketch-wrapper">
-        <img [src]="sketch.imageUrl" loading="lazy" />
-
-        <button (click)="openImage(sketch.imageUrl)">O</button>
-
-        @if (sketch.rejected) {
-          <span>Rejected by Admin</span>
-        }
-
-        @if (sketch.photo) {
-          <img [src]="sketch.photo" [alt]="sketch.displayName" referrerpolicy="no-referrer" />
-          <span>{{ sketch.displayName }}</span>
-          <time>{{ sketch.createdAt | date: 'mediumDate' }}</time>
-        }
-
-        @if (sketch.rejected && sketch.rejectedReason) {
-          <p>Reason: {{ sketch.rejectedReason }}</p>
-        }
-
-        @if (sketch.rejected) {
-          Voting Disabled
+  @if (deleteSketchId()) {
+    <h3>Delete your submission?</h3>
+    <p>
+      This will permanently remove your sketch image, video, and any votes it has received. This
+      cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <button (click)="cancelDelete()" [disabled]="deleting()">Cancel</button>
+      <button (click)="confirmDelete()" [disabled]="deleting()">
+        @if (deleting()) {
+          Deleting...
         } @else {
-          <button (click)="toggleVote(sketch)">{{ sketch.hasVoted ? 'Voted' : 'Upvote' }}</button>
+          Delete
         }
+      </button>
+    </div>
+  }
 
-        <span>{{ sketch.votes }} {{ sketch.votes === 1 ? 'vote' : 'votes' }}</span>
+  @if (rejectingSketch(); as target) {
+    <h3>Mark as not considered</h3>
+    <p>
+      The artist <strong>{{ target.displayName }}</strong> will be emailed the reason below. Their
+      sketch will be hidden from non-admin users.
+    </p>
 
-        @if (sketch.videoUrl) {
-          <button (click)="openVideo(sketch.videoUrl!)">Watch Creation Video</button>
-        }
-
-        @if (isAdmin()) {
-          @if (!sketch.rejected) {
-            <button (click)="openRejectForm(sketch)">Not considered for contest</button>
-          } @else {
-            <button (click)="unreject(sketch)">Restore</button>
-          }
-        }
-
-        @if (sketch.isOwner) {
-          <button (click)="requestDelete(sketch)">Delete</button>
-        }
-      </div>
+    <textarea
+      rows="4"
+      maxlength="1000"
+      placeholder="Reason for rejection (will be emailed to the artist)"
+      [ngModel]="rejectReason()"
+      (ngModelChange)="rejectReason.set($event)"
+      [disabled]="rejecting()"
+    ></textarea>
+    @if (rejectError()) {
+      <p>{{ rejectError() }}</p>
     }
+    <div class="modal-actions">
+      <button (click)="cancelReject()" [disabled]="rejecting()">Cancel</button>
+      <button (click)="submitReject()" [disabled]="rejecting() || !rejectReason().trim()">
+        @if (rejecting()) {
+          Submitting...
+        } @else {
+          Mark Rejected and Send Email
+        }
+      </button>
+    </div>
   }
-</section>
 
-@if (activeImageUrl()) {
+  <app-livechat />
+} @else {
   <div>
-    <button (click)="closeVideo()">Close</button>
-    <video [src]="activeVideoUrl()" controls autoplay></video>
+    <h2>No Active Contest</h2>
+    <p>There's no contest running right now. Check back soon!</p>
   </div>
 }
-
-@if (activeImageUrl()) {
-  <div>
-    <button (click)="closeImage()">Close</button>
-    <img [src]="activeImageUrl()" />
-  </div>
-}
-
-@if (deleteSketchId()) {
-  <h3>Delete your submission?</h3>
-  <p>
-    This will permanently remove your sketch image, video, and any votes it has received. This
-    cannot be undone.
-  </p>
-  <div class="modal-actions">
-    <button (click)="cancelDelete()" [disabled]="deleting()">Cancel</button>
-    <button (click)="confirmDelete()" [disabled]="deleting()">
-      @if (deleting()) {
-        Deleting...
-      } @else {
-        Delete
-      }
-    </button>
-  </div>
-}
-
-@if (rejectingSketch(); as target) {
-  <h3>Mark as not considered</h3>
-  <p>
-    The artist <strong>{{ target.displayName }}</strong> will be emailed the reason below. Their
-    sketch will be hidden from non-admin users.
-  </p>
-
-  <textarea
-    rows="4"
-    maxlength="1000"
-    placeholder="Reason for rejection (will be emailed to the artist)"
-    [ngModel]="rejectReason()"
-    (ngModelChange)="rejectReason.set($event)"
-    [disabled]="rejecting()"
-  ></textarea>
-  @if (rejectError()) {
-    <p>{{ rejectError() }}</p>
-  }
-  <div class="modal-actions">
-    <button (click)="cancelReject()" [disabled]="rejecting()">Cancel</button>
-    <button (click)="submitReject()" [disabled]="rejecting() || !rejectReason().trim()">
-      @if (rejecting()) {
-        Submitting...
-      } @else {
-        Mark Rejected and Send Email
-      }
-    </button>
-  </div>
-}
-
-<app-livechat />

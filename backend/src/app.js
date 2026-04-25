@@ -9,6 +9,7 @@ const GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server: SocketIOServer } = require("socket.io");
+const cron = require("node-cron");
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -26,6 +27,7 @@ const ChatMessageModel = require("./models/chat-message");
 
 const sketchRoutes = require("./routes/sketch");
 const contestRoutes = require("./routes/contest");
+const ContestModel = require("./models/contest");
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -234,6 +236,31 @@ io.on("connection", async (socket) => {
     }
   });
 });
+
+// Daily job at 12:00 AM IST to deactivate contest
+cron.schedule(
+  "0 0 * * *",
+  async () => {
+    try {
+      const today = new Date();
+
+      await ContestModel.updateOne(
+        {
+          status: "active",
+          endDate: { $lt: today },
+        },
+        {
+          $set: { status: "inactive" },
+        },
+      );
+
+      console.log("Contest scheduler ran successfully");
+    } catch (err) {
+      console.error("Contest scheduler error: ", err.message);
+    }
+  },
+  { timestamp: "Asia/Kolkata" },
+);
 
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

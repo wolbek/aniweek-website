@@ -10,18 +10,47 @@ const MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
 import { Sketch, Sketches } from './services/sketch.service';
 import { FormsModule } from '@angular/forms';
 import { CreateContestComponent } from '../create-contest/create-contest.component';
+import { Contest, ContestService } from '../create-contest/services/contest.service';
 @Component({
   selector: 'app-home',
   imports: [LivechatComponent, DatePipe, FormsModule, CreateContestComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   auth = inject(AuthService);
 
   private sketchService = inject(SketchService);
+  private contestService = inject(ContestService);
+
+  loadingContest = signal(true);
+  activeContest = signal<Contest | null>(null);
+
+  ngOnInit(): void {
+    this.loadActiveContest();
+  }
+
+  loadActiveContest(): void {
+    this.loadingContest.set(true);
+    this.contestService.getActiveContest().subscribe({
+      next: (res) => {
+        this.activeContest.set(res.contest);
+        this.loadingContest.set(false);
+
+        if (res.contest) {
+          this.loadSketches();
+          this.loadMySketch();
+        }
+      },
+      error: () => {
+        this.activeContest.set(null);
+        this.loadingContest.set(false);
+      },
+    });
+  }
 
   // Image Select
+
   imageSelected = signal<File | null>(null);
   imagePreviewUrl = signal<string | null>(null);
   imageError = signal<string | null>(null);
@@ -57,6 +86,7 @@ export class HomeComponent {
   }
 
   // Video Select
+
   videoSelected = signal<File | null>(null);
   videoPreviewUrl = signal<string | null>(null);
   videoError = signal<string | null>(null);
@@ -92,10 +122,12 @@ export class HomeComponent {
   }
 
   // Image & Video upload (should happen after select)
+
   uploading = signal(false);
   uploadError = signal<string | null>(null);
 
   // Check if can upload
+
   canUpload(): boolean {
     return !!this.imageSelected() && !!this.videoSelected() && !this.uploading();
   }
@@ -108,7 +140,7 @@ export class HomeComponent {
 
     if (!image || !video) return;
 
-    this.uploading.set(true); // Check: If the same user opens multiple tabs, will he be able to upload multiple images at the same time?
+    this.uploading.set(true);
     this.uploadError.set(null);
 
     this.sketchService.upload(image, video).subscribe({
@@ -116,7 +148,7 @@ export class HomeComponent {
         this.uploading.set(false);
         this.clearSelection();
         this.loadSketches();
-        this.loadmySketch();
+        this.loadMySketch();
       },
       error: (err) => {
         this.uploadError.set(err.error?.message ?? 'Upload failed. Please try again.');
@@ -125,7 +157,8 @@ export class HomeComponent {
     });
   }
 
-  // On upload we want to clear the form
+  // Clear the form on upload
+
   clearSelection(): void {
     if (this.imagePreviewUrl()) {
       URL.revokeObjectURL(this.imagePreviewUrl()!);
@@ -145,6 +178,7 @@ export class HomeComponent {
   }
 
   // Loading drawings after upload
+
   loadingSketches = signal(false);
   sketches = signal<Sketch[]>([]);
 
@@ -162,10 +196,11 @@ export class HomeComponent {
     });
   }
 
-  // Load user's sketch
+  // Load user's sketch (gets used to update myExistingSketch which gets used in component.html)
+
   myExistingSketch = signal<Sketch | null>(null);
 
-  loadmySketch() {
+  loadMySketch() {
     this.sketchService.fetchMySketch().subscribe({
       next: (sketch) => this.myExistingSketch.set(sketch),
       error: () => this.myExistingSketch.set(null),
@@ -318,9 +353,8 @@ export class HomeComponent {
     });
   }
 
-  ngOnInit(): void {
-    this.loadSketches();
-    this.loadmySketch();
+  onContestToggled(): void {
+    this.loadActiveContest();
   }
 
   logout(): void {

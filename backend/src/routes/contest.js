@@ -25,7 +25,11 @@ router.get("/random-character", requireAdmin, async (req, res) => {
         characterData?.images?.jpg?.image_url &&
         characterData?.about
       ) {
-        return res.status(200).json(characterData);
+        return res.status(200).json({
+          characterName: characterData.name,
+          characterImage: characterData.images.jpg.image_url,
+          characterDescription: characterData.about,
+        });
       }
     }
 
@@ -34,7 +38,7 @@ router.get("/random-character", requireAdmin, async (req, res) => {
       message: "Could not fetch valid character data after retries",
     });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error while fetching random character from Jikan",
     });
   }
@@ -42,14 +46,23 @@ router.get("/random-character", requireAdmin, async (req, res) => {
 
 router.post("/", requireAdmin, async (req, res) => {
   try {
-    const { startDate, endDate, characterData } = req.body;
+    const { characterData } = req.body;
 
-    await ContestModel.updateOne(
-      { status: "active" },
-      {
-        $set: { status: "inactive" },
-      },
-    );
+    const activeContest = await ContestModel.findOne({
+      status: "active",
+    });
+
+    if (activeContest) {
+      return res.status(400).json({
+        message:
+          "Couldn't create a new contest. There is an active contest going on.",
+      });
+    }
+
+    // Start date and end date is 7 days difference
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 7);
 
     await ContestModel.create({
       startDate,
@@ -72,12 +85,18 @@ router.post("/", requireAdmin, async (req, res) => {
 
 router.post("/cancel", requireAdmin, async (req, res) => {
   try {
-    await ContestModel.updateOne(
+    const result = await ContestModel.updateOne(
       { status: "active" },
       {
         $set: { status: "inactive" },
       },
     );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        message: "No active contest to cancel",
+      });
+    }
 
     return res.status(200).json({
       message: "Contest cancelled successfully",
@@ -85,6 +104,17 @@ router.post("/cancel", requireAdmin, async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       message: "Error while cancelling contest",
+    });
+  }
+});
+
+router.get("/active", async (req, res) => {
+  try {
+    const contest = await ContestModel.findOne({ status: "active" }).lean();
+    return res.status(200).json({ contest: contest || null });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Error while fetching active contest",
     });
   }
 });

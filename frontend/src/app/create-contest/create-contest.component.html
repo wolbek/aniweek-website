@@ -1,8 +1,59 @@
-<button (click)="showModal()">Create contest</button>
+@if (activeContest(); as contest) {
+  <h3>Active Contest</h3>
+  <img [src]="contest.characterImage" [alt]="contest.characterName" />
+  <p>{{ contest.characterName }}</p>
+  <div>
+    Contest runs: {{ contest.startDate | date: 'mediumDate' }} -
+    {{ contest.endDate | date: 'mediumDate' }}
+  </div>
+
+  <button (click)="cancelContest()" [disabled]="cancelling()">
+    @if (cancelling()) {
+      Cancelling...
+    } @else {
+      Cancel Contest
+    }
+  </button>
+  @if (cancelError()) {
+    <p>{{ cancelError() }}</p>
+  }
+} @else {
+  <button (click)="showModal()">Create contest</button>
+}
 
 @if (isModalVisible()) {
-  <div>
-    <input type="date" name="startDate" />
-    <input type="date" name="endDate" />
-  </div>
+  <h1>Create New Contest</h1>
+  <p>Anime character:</p>
+  @if (loadingCharacter()) {
+    <p>Fetching Character...</p>
+  } @else if (character(); as char) {
+    <img [src]="char.characterImage" [alt]="char.characterName" />
+    <p>{{ char.characterName }}</p>
+    <p>{{ char.characterDescription }}</p>
+  }
+
+  @if (characterError()) {
+    <p>{{ characterError() }}</p>
+  }
+
+  <button (click)="rerollCharacter()" [disabled]="loadingCharacter()">
+    @if (loadingCharacter()) {
+      Rolling...
+    } @else {
+      Reroll Character
+    }
+  </button>
+
+  <button (click)="closeModal()" [disabled]="submitting()">Cancel</button>
+  <button (click)="submitContest()" [disabled]="!canSubmit()">
+    @if (submitting()) {
+      Creating...
+    } @else {
+      Submit
+    }
+  </button>
+
+  @if (submitError()) {
+    <p>{{ submitError() }}</p>
+  }
 }
