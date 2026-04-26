@@ -10,6 +10,7 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server: SocketIOServer } = require("socket.io");
 const cron = require("node-cron");
+const { sendWinnerNotification } = require("./services/mailer");
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -28,6 +29,7 @@ const ChatMessageModel = require("./models/chat-message");
 const sketchRoutes = require("./routes/sketch");
 const contestRoutes = require("./routes/contest");
 const ContestModel = require("./models/contest");
+const SketchModel = require("./models/sketch");
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -237,6 +239,12 @@ io.on("connection", async (socket) => {
   });
 });
 
+const PRIZE_MAP = {
+  1: "Rs 500",
+  2: "Rs 200",
+  3: "Rs 100",
+};
+
 // Daily job at 12:00 AM IST to deactivate contest
 cron.schedule(
   "0 0 * * *",
@@ -244,17 +252,65 @@ cron.schedule(
     try {
       const today = new Date();
 
+      const expiredContest = await ContestModel.findOne({
+        status: "active",
+        endDate: { $lt: today },
+      });
+
+      if (!expiredContest) {
+        console.log("Contest scheduler: no expired contest found");
+        return;
+      }
+
+      const topSketches = await SketchModel.aggregate([
+        { $match: { contestId: expiredContest._id, rejected: { $ne: true } } },
+        { $addFields: { voteCount: { $size: "$votes" } } },
+        { $sort: { voteCount: -1 } },
+        { $limit: 3 },
+      ]);
+
+      const winners = [];
+
+      for (let i = 0; i < topSketches.length; i++) {
+        const sketch = topSketches[i];
+        const rank = i + 1;
+        winners.push({
+          rank,
+          sketchId: sketch._id,
+          userId: sketch.userId,
+          prize: PRIZE_MAP[rank],
+        });
+      }
+
       await ContestModel.updateOne(
-        {
-          status: "active",
-          endDate: { $lt: today },
-        },
-        {
-          $set: { status: "inactive" },
-        },
+        { _id: expiredContest._id },
+        { $set: { status: "inactive", winners } },
       );
 
-      console.log("Contest scheduler ran successfully");
+      // Sending email to winners
+      for (const winner of winners) {
+        try {
+          const user = await UserModel.findOne({ _id: winner.userId }).lean();
+          if (user?.email) {
+            await sendWinnerNotification(
+              user.email,
+              user.displayName,
+              winner.rank,
+              winner.prize,
+              expiredContest.characterName,
+            );
+          }
+        } catch (err) {
+          console.error(
+            `Failed to email winner rank ${winner.rank}: `,
+            err.message,
+          );
+        }
+      }
+
+      console.log(
+        `Contest scheduler ran successfully: deactivated contest ${expiredContest._id}`,
+      );
     } catch (err) {
       console.error("Contest scheduler error: ", err.message);
     }

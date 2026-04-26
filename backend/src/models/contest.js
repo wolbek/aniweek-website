@@ -28,6 +28,20 @@ const contestSchema = mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    winners: [
+      {
+        rank: { type: Number },
+        sketchId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Sketch",
+        },
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        prize: { type: String },
+      },
+    ],
   },
   { timestamps: true },
 );

@@ -22,6 +22,20 @@ export interface CharacterData {
   characterDescription: string;
 }
 
+export interface WinnerEntry {
+  rank: number;
+  prize: string;
+  displayName: string;
+  photo: string | null;
+  sketchImageUrl: string | null;
+}
+export interface PrevContestWinnersResponse {
+  characterName: string;
+  characterImage: string;
+  endDate: string;
+  winners: WinnerEntry[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -42,5 +56,9 @@ export class ContestService {
 
   cancelContest() {
     return this.http.post('/api/contest/cancel', {});
+  }
+
+  getPrevContestWinners(): Observable<PrevContestWinnersResponse | null> {
+    return this.http.get<PrevContestWinnersResponse | null>('/api/contest/previous-winners');
   }
 }

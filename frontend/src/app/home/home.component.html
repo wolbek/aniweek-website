@@ -240,3 +240,36 @@
     <p>There's no contest running right now. Check back soon!</p>
   </div>
 }
+
+@if (loadingWinners()) {
+  <p>Loading previous contest winners...</p>
+} @else if (prevContestWinners(); as winnersData) {
+  <p>Previous contest character: {{ winnersData.characterName }}</p>
+  <img [src]="winners.characterImage" [alt]="winners.characterName" />
+
+  @if (winnersData.winners.length === 0) {
+    <p>No winners for the last contest.</p>
+  } @else {
+    @for (winner of winnersData.winners; track winner.rank) {
+      <div>
+        @switch (winner.rank) {
+          @case (1) {
+            1st
+          }
+          @case (2) {
+            2nd
+          }
+          @case (3) {
+            3rd
+          }
+        }
+      </div>
+      <img [src]="winner.sketchImageUrl" alt="winning sketch" />
+      @if (winner.photo) {
+        <img [src]="winner.photo" [alt]="winner.displayName" referrerpolicy="no-referrer" />
+      }
+      <span>{{ winner.displayName }}</span>
+      <span>{{ winner.prize }}</span>
+    }
+  }
+}

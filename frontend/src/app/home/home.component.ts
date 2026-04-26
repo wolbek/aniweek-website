@@ -10,7 +10,11 @@ const MAX_VIDEO_SIZE = 30 * 1024 * 1024; // 30MB
 import { Sketch, Sketches } from './services/sketch.service';
 import { FormsModule } from '@angular/forms';
 import { CreateContestComponent } from '../create-contest/create-contest.component';
-import { Contest, ContestService } from '../create-contest/services/contest.service';
+import {
+  Contest,
+  ContestService,
+  PrevContestWinnersResponse,
+} from '../create-contest/services/contest.service';
 import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-home',
@@ -50,15 +54,34 @@ export class HomeComponent implements OnInit {
           this.loadMySketch();
           this.countdownVisible.set(true);
           this.startCountDown(res.contest.startDate, res.contest.endDate);
+        } else {
+          this.loadPrevContestWinners();
+          this.countdownVisible.set(false);
         }
-        // else {
-        //   this.loadLastWinners();
-        //   this.countdownVisible.set(false);
-        // }
       },
       error: () => {
         this.activeContest.set(null);
         this.loadingContest.set(false);
+        this.loadPrevContestWinners();
+      },
+    });
+  }
+
+  // Show contest winners
+  prevContestWinners = signal<PrevContestWinnersResponse | null>(null);
+  loadingWinners = signal(false);
+  // We don't show error here. We just skip showing if any errors
+
+  loadPrevContestWinners(): void {
+    this.loadingWinners.set(true);
+    this.contestService.getPrevContestWinners().subscribe({
+      next: (res) => {
+        this.prevContestWinners.set(res);
+        this.loadingWinners.set(false);
+      },
+      error: () => {
+        this.prevContestWinners.set(null);
+        this.loadingWinners.set(false);
       },
     });
   }
