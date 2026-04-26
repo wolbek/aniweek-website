@@ -13,6 +13,6 @@ export class ContactUsService {
   private http = inject(HttpClient);
 
   sendMessage(subject: string, body: string): Observable<ContactUsResponse> {
-    return this.http.post<ContactUsResponse>('/api/contact', { subject, body });
+    return this.http.post<ContactUsResponse>('/api/contact-us', { subject, body });
   }
 }

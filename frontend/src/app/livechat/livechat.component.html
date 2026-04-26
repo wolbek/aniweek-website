@@ -17,7 +17,7 @@
       </div>
 
       <div class="messages" #messagesContainer>
-        @for (msg of chat.messages(); track msg.timestamp) {
+        @for (msg of chat.messages(); track msg._id) {
           <div class="message" [class.admin-msg]="msg.role === 'admin'">
             <img class="avatar" [src]="msg.photo" [alt]="msg.displayName" />
             <div class="bubble">
@@ -27,6 +27,15 @@
                   <span class="badge">Admin</span>
                 }
                 <span class="time">{{ msg.timestamp | date: 'shortTime' }}</span>
+                @if (auth.userDataSignal()?.role === 'admin') {
+                  <button
+                    class="delete-msg-btn"
+                    (click)="chat.deleteMessage(msg._id)"
+                    title="Delete message"
+                  >
+                    &times;
+                  </button>
+                }
               </div>
               <p class="text">{{ msg.text }}</p>
             </div>

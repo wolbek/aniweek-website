@@ -12,6 +12,7 @@ const { Server: SocketIOServer } = require("socket.io");
 const cron = require("node-cron");
 const { sendWinnerNotification } = require("./services/mailer");
 const { redis, KEYS } = require("./services/redis");
+const { censorText } = require("./utils/profanity");
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -29,6 +30,8 @@ const ChatMessageModel = require("./models/chat-message");
 
 const sketchRoutes = require("./routes/sketch");
 const contestRoutes = require("./routes/contest");
+const contactUsRoutes = require("./routes/contact-us");
+
 const ContestModel = require("./models/contest");
 const SketchModel = require("./models/sketch");
 
@@ -126,6 +129,7 @@ app.get("/auth/user", verifyJwt, async (req, res) => {
 // Other routes
 app.use("/sketch", verifyJwt, sketchRoutes);
 app.use("/contest", verifyJwt, contestRoutes);
+app.use("/contact-us", verifyJwt, contactUsRoutes);
 
 // Socket.io livechat -----------------------------------------------------------
 
@@ -187,6 +191,7 @@ io.on("connection", async (socket) => {
       .lean();
 
     const shapedMessages = messages.map((m) => ({
+      _id: m._id,
       text: m.text,
       displayName: m.userId?.displayName,
       photo: m.userId?.photo,
@@ -217,8 +222,9 @@ io.on("connection", async (socket) => {
 
   socket.on("send-message", async (data) => {
     if (!activeSession) return;
-    const text = typeof data?.text == "string" ? data.text.trim() : "";
+    let text = typeof data?.text == "string" ? data.text.trim() : "";
     if (!text || text.length > MAX_MESSAGE_LENGTH) return;
+    text = censorText(text);
 
     try {
       const msg = await ChatMessageModel.create({
@@ -228,6 +234,7 @@ io.on("connection", async (socket) => {
       });
 
       io.emit("new-message", {
+        _id: msg._id,
         text: msg.text,
         displayName: dbUser.displayName,
         photo: dbUser.photo,
@@ -238,6 +245,21 @@ io.on("connection", async (socket) => {
       console.error("send-message error:", err.message);
     }
   });
+});
+
+socket.on("delete-message", async (data) => {
+  if (dbUser.role !== "admin") return;
+  const messageId = data?.messageId;
+  if (!messageId) return;
+
+  try {
+    const deleted = await ChatMessageModel.findOneAndDelete({ _id: messageId });
+    if (deleted) {
+      io.emit("message-deleted", { messageId });
+    }
+  } catch (err) {
+    console.error("delete-message error:", err.message);
+  }
 });
 
 const PRIZE_MAP = {

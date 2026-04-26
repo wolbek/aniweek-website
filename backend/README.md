@@ -11,6 +11,7 @@ npm i socket.io
 npm i nodemailer
 npm i node-cron
 npm i ioredis
+npm i obscenity
 
 <!-- npm i multer -->
 

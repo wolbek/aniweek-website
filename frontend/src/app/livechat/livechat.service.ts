@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { AuthService } from '../auth/services/auth.service';
 
 export interface ChatMessage {
+  _id: string;
   text: string;
   displayName: string;
   photo: string;
@@ -44,6 +45,9 @@ export class LivechatService {
     this.socket.on('new-message', (msg: ChatMessage) => {
       this.messages.update((prev) => [...prev, msg]);
     });
+    this.socket.on('message-deleted', (data: { messageId: string }) => {
+      this.messages.update((prev) => prev.filter((m) => m._id !== data.messageId));
+    });
   }
 
   disconnect(): void {
@@ -62,5 +66,9 @@ export class LivechatService {
   sendMessage(text: string): void {
     if (!text.trim()) return;
     this.socket?.emit('send-message', { text: text.trim() });
+  }
+
+  deleteMessage(messageId: string): void {
+    this.socket?.emit('delete-message', { messageId });
   }
 }

@@ -19,9 +19,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    if (body.length > CONTACT_US_MAX_BODY_LENGTH) {
+    if (body.length > process.env.CONTACT_US_MAX_BODY_LENGTH) {
       return res.status(400).json({
-        message: `Message must be under ${CONTACT_US_MAX_BODY_LENGTH} characters.`,
+        message: `Message must be under ${process.env.CONTACT_US_MAX_BODY_LENGTH} characters.`,
       });
     }
 
