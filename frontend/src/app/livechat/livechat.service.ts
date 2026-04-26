@@ -17,6 +17,7 @@ export interface ChatMessage {
 export class LivechatService {
   private auth = inject(AuthService);
   active = signal(false);
+  rateLimitMessage = signal<string | null>(null);
   private socket: Socket | null = null;
   messages = signal<ChatMessage[]>([]);
 
@@ -45,8 +46,14 @@ export class LivechatService {
     this.socket.on('new-message', (msg: ChatMessage) => {
       this.messages.update((prev) => [...prev, msg]);
     });
+
     this.socket.on('message-deleted', (data: { messageId: string }) => {
       this.messages.update((prev) => prev.filter((m) => m._id !== data.messageId));
+    });
+
+    this.socket.on('rate-limited', (data: { message: string }) => {
+      this.rateLimitMessage.set(data.message);
+      setTimeout(() => this.rateLimitMessage.set(null), 4000);
     });
   }
 

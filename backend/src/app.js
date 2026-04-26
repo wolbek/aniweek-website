@@ -150,6 +150,8 @@ restoreActiveSession();
 
 const MAX_MESSAGE_LENGTH = 2000;
 const CHAT_HISTORY_LIMIT = 200;
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60_000;
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -220,11 +222,32 @@ io.on("connection", async (socket) => {
     }
   });
 
+  const messageTimes = [];
+
   socket.on("send-message", async (data) => {
     if (!activeSession) return;
     let text = typeof data?.text == "string" ? data.text.trim() : "";
     if (!text || text.length > MAX_MESSAGE_LENGTH) return;
     text = censorText(text);
+
+    // Rate limiting for livchat messages
+    const now = Date.now();
+
+    while (
+      messageTimes.length > 0 &&
+      now - messageTimes[0] > RATE_LIMIT_WINDOW_MS
+    ) {
+      messageTimes.shift();
+    }
+    // Now only those times remain in messageTimes which is within rate limit window
+    if (messageTimes.length >= RATE_LIMIT_MAX) {
+      socket.emit("rate-limited", {
+        message: `Only ${RATE_LIMIT_MAX} messages per minute allowed`,
+      });
+      return;
+    }
+
+    messageTimes.push(now);
 
     try {
       const msg = await ChatMessageModel.create({
@@ -245,21 +268,23 @@ io.on("connection", async (socket) => {
       console.error("send-message error:", err.message);
     }
   });
-});
 
-socket.on("delete-message", async (data) => {
-  if (dbUser.role !== "admin") return;
-  const messageId = data?.messageId;
-  if (!messageId) return;
+  socket.on("delete-message", async (data) => {
+    if (dbUser.role !== "admin") return;
+    const messageId = data?.messageId;
+    if (!messageId) return;
 
-  try {
-    const deleted = await ChatMessageModel.findOneAndDelete({ _id: messageId });
-    if (deleted) {
-      io.emit("message-deleted", { messageId });
+    try {
+      const deleted = await ChatMessageModel.findOneAndDelete({
+        _id: messageId,
+      });
+      if (deleted) {
+        io.emit("message-deleted", { messageId });
+      }
+    } catch (err) {
+      console.error("delete-message error:", err.message);
     }
-  } catch (err) {
-    console.error("delete-message error:", err.message);
-  }
+  });
 });
 
 const PRIZE_MAP = {

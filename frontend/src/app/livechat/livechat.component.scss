@@ -177,6 +177,16 @@
   font-size: 0.9rem;
 }
 
+/* ── Rate limit info ── */
+.rate-limit-info {
+  text-align: center;
+  padding: 0.4rem 0.75rem;
+  background: #fff3cd;
+  color: #856404;
+  font-size: 0.8rem;
+  border-top: 1px solid #ffc107;
+}
+
 /* ── Input bar ── */
 .input-bar {
   display: flex;

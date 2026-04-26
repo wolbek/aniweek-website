@@ -45,6 +45,10 @@
         }
       </div>
 
+      @if (chat.rateLimitMessage()) {
+        <div class="rate-limit-info">{{ chat.rateLimitMessage() }}</div>
+      }
+
       <form class="input-bar" (ngSubmit)="send()">
         <input
           type="text"
