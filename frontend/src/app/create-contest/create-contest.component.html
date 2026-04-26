@@ -29,7 +29,10 @@
   } @else if (character(); as char) {
     <img [src]="char.characterImage" [alt]="char.characterName" />
     <p>{{ char.characterName }}</p>
-    <p>{{ char.characterDescription }}</p>
+    <p>
+      {{ isExpanded() ? char.characterDescription : (char.characterDescription | slice: 0 : 100) }}
+      <span (click)="toggleExpand()">{{ isExpanded() ? '...see less' : '...see more' }}</span>
+    </p>
   }
 
   @if (characterError()) {

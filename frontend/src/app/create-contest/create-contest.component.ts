@@ -1,11 +1,11 @@
 import { Component, inject, input, output, signal } from '@angular/core';
 import { Contest } from './services/contest.service';
-import { DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ContestService } from './services/contest.service';
 import { CharacterData } from './services/contest.service';
 @Component({
   selector: 'app-create-contest',
-  imports: [DatePipe],
+  imports: [DatePipe, CommonModule],
   templateUrl: './create-contest.component.html',
   styleUrl: './create-contest.component.scss',
 })
@@ -24,6 +24,15 @@ export class CreateContestComponent {
   cancelError = signal<string | null>(null);
 
   contestToggled = output<void>();
+
+  // See more
+  isExpanded = signal<boolean>(false);
+
+  toggleExpand() {
+    this.isExpanded.set(this.isExpanded() ? false : true);
+  }
+
+  // Create contest modal
 
   showModal() {
     this.isModalVisible.set(true);

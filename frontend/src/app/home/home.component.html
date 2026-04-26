@@ -6,6 +6,7 @@
   <p>Loading...</p>
 }
 
+<a routerLink="/rules">Rules</a>
 <button (click)="logout()">Logout</button>
 
 @if (isAdmin()) {
@@ -15,12 +16,25 @@
 @if (loadingContest()) {
   <p>Loading Contest...</p>
 } @else if (activeContest(); as contest) {
-  <div>Timer</div>
+  @if (countdownVisible()) {
+    <div>Timer</div>
+    <div>
+      {{ countdownDays() }} Days : {{ countdownHours() }} Hours : {{ countdownMinutes() }} Minutes :
+      {{ countdownSeconds() }} Seconds
+    </div>
+  }
 
   <div class="contest-character">
     <h2>This Week's character: {{ contest.characterName }}</h2>
     <img [src]="contest.characterImage" [alt]="contest.characterName" />
-    <p>{{ contest.characterDescription }}</p>
+    <p>
+      {{
+        isExpanded()
+          ? contest.characterDescription
+          : (contest.characterDescription | slice: 0 : 100)
+      }}
+      <span (click)="toggleExpand()">{{ isExpanded() ? '...see less' : '...see more' }}</span>
+    </p>
   </div>
 
   <div class="upload-section">

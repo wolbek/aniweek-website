@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { AuthService } from '../auth/services/auth.service';
-import { DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { SketchService } from './services/sketch.service';
 import { LivechatComponent } from '../livechat/livechat.component';
 
@@ -11,9 +11,17 @@ import { Sketch, Sketches } from './services/sketch.service';
 import { FormsModule } from '@angular/forms';
 import { CreateContestComponent } from '../create-contest/create-contest.component';
 import { Contest, ContestService } from '../create-contest/services/contest.service';
+import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-home',
-  imports: [LivechatComponent, DatePipe, FormsModule, CreateContestComponent],
+  imports: [
+    LivechatComponent,
+    DatePipe,
+    FormsModule,
+    CreateContestComponent,
+    CommonModule,
+    RouterLink,
+  ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
@@ -40,13 +48,52 @@ export class HomeComponent implements OnInit {
         if (res.contest) {
           this.loadSketches();
           this.loadMySketch();
+          this.countdownVisible.set(true);
+          this.startCountDown(res.contest.startDate, res.contest.endDate);
         }
+        // else {
+        //   this.loadLastWinners();
+        //   this.countdownVisible.set(false);
+        // }
       },
       error: () => {
         this.activeContest.set(null);
         this.loadingContest.set(false);
       },
     });
+  }
+
+  // See more
+  isExpanded = signal<boolean>(false);
+
+  toggleExpand() {
+    this.isExpanded.set(this.isExpanded() ? false : true);
+  }
+
+  // Timer
+
+  countdownVisible = signal<boolean>(false);
+  countdownDays = signal(0);
+  countdownHours = signal(0);
+  countdownMinutes = signal(0);
+  countdownSeconds = signal(0);
+
+  contestEnded = signal(false); // No need but just calculating it for now. May use in future
+
+  startCountDown(startDateStr: string, endDateStr: string) {
+    this.contestEnded.set(false);
+    const tick = () => {
+      const now = Date.now();
+      const end = new Date(endDateStr).getTime();
+
+      const diff = end - now;
+
+      this.countdownDays.set(Math.floor(diff / (1000 * 60 * 60 * 24)));
+      this.countdownHours.set(Math.floor((diff / (1000 * 60 * 60)) % 24));
+      this.countdownMinutes.set(Math.floor((diff / (1000 * 60)) % 60));
+      this.countdownSeconds.set(Math.floor((diff / 1000) % 60));
+    };
+    setInterval(tick, 1000);
   }
 
   // Image Select
