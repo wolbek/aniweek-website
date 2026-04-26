@@ -21,6 +21,12 @@ export const routes: Routes = [
     loadComponent: () => import('./rules/rules.component').then((m) => m.RulesComponent),
   },
   {
+    path: 'contact-us',
+    loadComponent: () =>
+      import('./contact-us/contact-us.component').then((m) => m.ContactUsComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: '**',
     redirectTo: 'home',
   },
