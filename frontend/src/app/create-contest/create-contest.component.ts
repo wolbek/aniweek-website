@@ -3,9 +3,10 @@ import { Contest } from './services/contest.service';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ContestService } from './services/contest.service';
 import { CharacterData } from './services/contest.service';
+import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-create-contest',
-  imports: [DatePipe, CommonModule],
+  imports: [DatePipe, CommonModule, FormsModule],
   templateUrl: './create-contest.component.html',
   styleUrl: './create-contest.component.scss',
 })
@@ -45,6 +46,40 @@ export class CreateContestComponent {
   closeModal() {
     this.isModalVisible.set(false);
   }
+
+  // Search character
+  searchQuery = '';
+  searchResults = signal<CharacterData[]>([]);
+  searchingCharacter = signal(false);
+  searchError = signal<string | null>(null);
+
+  searchCharacter(): void {
+    const query = this.searchQuery.trim();
+    if (!query) return;
+
+    this.searchingCharacter.set(true);
+    this.searchError.set(null);
+    this.searchResults.set([]);
+
+    this.contestService.searchCharacter(query).subscribe({
+      next: (data) => {
+        this.searchResults.set(data.results);
+        this.searchingCharacter.set(false);
+      },
+      error: (err) => {
+        this.searchError.set(err.error?.message ?? 'Failed to search characters');
+        this.searchingCharacter.set(false);
+      },
+    });
+  }
+
+  selectCharacter(char: CharacterData): void {
+    this.character.set(char);
+    this.searchResults.set([]);
+    this.searchQuery = '';
+  }
+
+  // Reroll character
 
   rerollCharacter() {
     this.loadingCharacter.set(true);

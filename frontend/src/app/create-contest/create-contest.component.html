@@ -23,6 +23,34 @@
 
 @if (isModalVisible()) {
   <h1>Create New Contest</h1>
+
+  <p>Search for a character:</p>
+  <input
+    type="text"
+    [(ngModel)]="searchQuery"
+    placeholder="Type a character name..."
+    [disabled]="searchingCharacter()"
+  />
+  <button (click)="searchCharacter()" [disabled]="!searchQuery.trim() || searchingCharacter()">
+    @if (searchingCharacter()) {
+      Searching...
+    } @else {
+      Search
+    }
+  </button>
+  @if (searchError()) {
+    <p>{{ searchError() }}</p>
+  }
+
+  @if (searchResults().length > 0) {
+    @for (result of searchResults(); track result.characterName) {
+      <div (click)="selectCharacter(result)">
+        <img [src]="result.characterImage" [alt]="result.characterName" />
+        <span>{{ result.characterName }}</span>
+      </div>
+    }
+  }
+
   <p>Anime character:</p>
   @if (loadingCharacter()) {
     <p>Fetching Character...</p>

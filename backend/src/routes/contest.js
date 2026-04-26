@@ -10,6 +10,8 @@ const router = express.Router();
 const JIKAN_API_URL_RANDOM_CHARACTER =
   "https://api.jikan.moe/v4/random/characters";
 
+const JIKAN_API_URL_SEARCH_CHARACTER = "https://api.jikan.moe/v4/characters";
+
 router.get("/random-character", requireAdmin, async (req, res) => {
   try {
     const retries = 3;
@@ -43,6 +45,43 @@ router.get("/random-character", requireAdmin, async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       message: "Error while fetching random character from Jikan",
+    });
+  }
+});
+
+router.get("/search-character", requireAdmin, async (req, res) => {
+  try {
+    const query = req.query.q?.trim();
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const jikanRes = await fetch(
+      `${JIKAN_API_URL_SEARCH_CHARACTER}?q=${encodeURIComponent(query)}&limit=10`,
+    );
+
+    if (!jikanRes.ok) {
+      return res.status(502).json({
+        message: "Failed to search characters from Jikan API",
+      });
+    }
+
+    const { data } = await jikanRes.json();
+
+    const results = (data || [])
+      .filter((c) => c?.name && c?.images?.jpg?.image_url)
+      .map((c) => {
+        return {
+          characterName: c.name,
+          characterImage: c.images.jpg.image_url,
+          characterDescription: c.about || "No description available.",
+        };
+      });
+
+    return res.status(200).json({ results });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Error while searching characters from Jikan",
     });
   }
 });

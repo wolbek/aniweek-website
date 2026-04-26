@@ -46,6 +46,12 @@ export class ContestService {
     return this.http.get<CharacterData>('/api/contest/random-character');
   }
 
+  searchCharacter(query: string): Observable<{ results: CharacterData[] }> {
+    return this.http.get<{ results: CharacterData[] }>('/api/contest/search-character', {
+      params: { q: query },
+    });
+  }
+
   getActiveContest(): Observable<ActiveContestResponse> {
     return this.http.get<ActiveContestResponse>('/api/contest/active');
   }
