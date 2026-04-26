@@ -15,6 +15,7 @@ const requireAdmin = require("../middleware/admin");
 const UserModel = require("../models/user");
 const SketchModel = require("../models/sketch");
 const ContestModel = require("../models/contest");
+const { redis, KEYS } = require("../services/redis");
 
 const ALLOWED_IMAGE_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -22,6 +23,21 @@ const ALLOWED_IMAGE_CONTENT_TYPES = new Set([
   "image/webp",
 ]);
 const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm"]);
+
+async function getActiveContestId() {
+  const cache = await redis.get(KEYS.ACTIVE_CONTEST);
+  if (cache) {
+    const parsedCache = JSON.stringify(cache);
+    if (parsedCache?._id) return parsedCache._id;
+  }
+
+  const contest = await ContestModel.findOne(
+    { status: "active" },
+    { _id: 1 },
+  ).lean();
+
+  return contest?._id ?? null;
+}
 
 // Create GCP signed url for image and video and share to frontend for direct upload.
 router.post("/upload-urls", async (req, res) => {
@@ -34,7 +50,10 @@ router.post("/upload-urls", async (req, res) => {
     return res.status(400).json({ message: "Unsupported video content type" });
   }
 
-  const contest = await ContestModel.findOne({ status: "active" }).lean();
+  const contestId = await getActiveContestId();
+  if (!contestId) {
+    return res.status(404).json({ message: "No active contest" });
+  }
 
   const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
   if (!dbUser) {
@@ -45,8 +64,8 @@ router.post("/upload-urls", async (req, res) => {
   const videoSubmissionId = crypto.randomUUID();
 
   // We are storing data according to contests. I am using googleId for the name of folder.
-  const imageObjectPath = `contest-${contest._id}/user-${dbUser.userId}/image-${imageSubmissionId}.jpg`; // .jpg directly works?
-  const videoObjectPath = `contest-${contest._id}/user-${dbUser.userId}/video-${videoSubmissionId}.mp4`; // .mp4 directly works?
+  const imageObjectPath = `contest-${contestId}/user-${dbUser.userId}/image-${imageSubmissionId}.jpg`; // .jpg directly works?
+  const videoObjectPath = `contest-${contestId}/user-${dbUser.userId}/video-${videoSubmissionId}.mp4`; // .mp4 directly works?
 
   try {
     const [imageSignedUrl, videoSignedUrl] = await Promise.all([
@@ -96,13 +115,13 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const contest = await ContestModel.findOne(
-      { status: "active" },
-      { _id: 1 },
-    ).lean();
+    const contestId = await getActiveContestId();
+    if (!contestId) {
+      return res.status(404).json({ message: "No active contest" });
+    }
 
     // Sanity check: object paths must live under this user's namespace so a client can't supply someone else's path.
-    const expectedPrefix = `contest-${contest._id}/user-${dbUser.userId}/`;
+    const expectedPrefix = `contest-${contestId}/user-${dbUser.userId}/`;
     if (
       !image.objectPath.startsWith(expectedPrefix) ||
       !video.objectPath.startsWith(expectedPrefix)
@@ -126,7 +145,7 @@ router.post("/", async (req, res) => {
     // Replace existing submission (delete old GCS objects + DB row).
     const existing = await SketchModel.findOne({
       userId: dbUser._id,
-      contestId: contest._id,
+      contestId: contestId,
     }).lean();
 
     if (existing) {
@@ -139,7 +158,7 @@ router.post("/", async (req, res) => {
 
     const sketch = await SketchModel.create({
       userId: dbUser._id, // I'll not store googleId but _id of User for populate
-      contestId: contest._id,
+      contestId: contestId,
       imageObjectPath: image.objectPath,
       imageContentType: image.contentType,
       imageSize: Number(image.size),
@@ -149,7 +168,7 @@ router.post("/", async (req, res) => {
     });
 
     try {
-      await sendUploadNotificationToAdmin(dbUser.displayName, contest._id);
+      await sendUploadNotificationToAdmin(dbUser.displayName, contestId);
     } catch (err) {
       console.log(err);
     }
@@ -167,13 +186,13 @@ router.post("/", async (req, res) => {
 // Get sketches
 router.get("/", async (req, res) => {
   try {
-    const activeContest = await ContestModel.findOne(
-      { status: "active" },
-      { _id: 1 },
-    ).lean();
+    const contestId = await getActiveContestId();
+    if (!contestId) {
+      return res.status(404).json({ message: "No active contest" });
+    }
 
     const dbSketches = await SketchModel.find({
-      contestId: activeContest._id,
+      contestId: contestId,
     })
       .populate("userId", ["displayName", "photo"])
       .lean();

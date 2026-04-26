@@ -11,6 +11,7 @@ const http = require("http");
 const { Server: SocketIOServer } = require("socket.io");
 const cron = require("node-cron");
 const { sendWinnerNotification } = require("./services/mailer");
+const { redis, KEYS } = require("./services/redis");
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -306,6 +307,40 @@ cron.schedule(
             err.message,
           );
         }
+      }
+
+      await redis.del(KEYS.ACTIVE_CONTEST);
+
+      if (winners.length > 0) {
+        const winnersData = await Promise.all(
+          winners.map(async (winner) => {
+            const user = await UserModel.findOne({ _id: winner.userId }).lean();
+            const sketch = await SketchModel.findOne({
+              _id: winner.sketchId,
+            }).lean();
+
+            return {
+              rank: winner.rank,
+              prize: winner.prize,
+              displayName: user?.displayName ?? "Unknown",
+              photo: user?.photo ?? null,
+              sketchImageUrl: sketch
+                ? publicUrlForObject(sketch.imageObjectPath)
+                : null,
+            };
+          }),
+        );
+        await redis.set(
+          KEYS.PREV_WINNERS,
+          JSON.stringify({
+            characterName: expiredContest.characterName,
+            characterImage: expiredContest.characterImage,
+            endDate: expiredContest.endDate,
+            winners: winnersData,
+          }),
+        );
+      } else {
+        await redis.del(KEYS.PREV_WINNERS);
       }
 
       console.log(

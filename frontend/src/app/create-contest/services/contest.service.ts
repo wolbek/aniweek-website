@@ -59,6 +59,6 @@ export class ContestService {
   }
 
   getPrevContestWinners(): Observable<PrevContestWinnersResponse | null> {
-    return this.http.get<PrevContestWinnersResponse | null>('/api/contest/previous-winners');
+    return this.http.get<PrevContestWinnersResponse | null>('/api/contest/prev-winners');
   }
 }

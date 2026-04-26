@@ -10,6 +10,7 @@ npm i mongoose
 npm i socket.io
 npm i nodemailer
 npm i node-cron
+npm i ioredis
 
 <!-- npm i multer -->
 
@@ -18,6 +19,8 @@ Create src folder > app.js
 Run mongodb when running the app:
 sudo systemctl start mongod
 And connect with mongo compass
+
+Run redis through docker before running the app.
 
 # Auth APIS
 

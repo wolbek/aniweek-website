@@ -245,7 +245,7 @@
   <p>Loading previous contest winners...</p>
 } @else if (prevContestWinners(); as winnersData) {
   <p>Previous contest character: {{ winnersData.characterName }}</p>
-  <img [src]="winners.characterImage" [alt]="winners.characterName" />
+  <img [src]="winnersData.characterImage" [alt]="winnersData.characterName" />
 
   @if (winnersData.winners.length === 0) {
     <p>No winners for the last contest.</p>
