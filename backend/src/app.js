@@ -1,6 +1,7 @@
 require("dotenv").config();
 let express = require("express");
 let app = express();
+app.set("trust proxy", true);
 const cors = require("cors");
 const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
@@ -56,7 +57,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback",
+      callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`,
       scope: ["openid", "profile", "email"],
       state: false,
     },
