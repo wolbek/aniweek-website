@@ -1,4 +1,6 @@
-
-project_id             = ""
-region                 = ""
-sketches_bucket_name   = ""
+project_id           = ""
+region               = ""
+sketches_bucket_name = ""
+zone                 = ""
+vm_name              = "aniweek-vm"
+machine_type         = "e2-small"
