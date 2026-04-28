@@ -27,7 +27,7 @@ async function sendUploadNotificationToAdmin(userDisplayName, contestId) {
     console.log("Server is ready to take our messages");
 
     const info = await transporter.sendMail({
-      from: `"Aniweek" <${SMTP_USER}>`, // sender address
+      from: `"aniweekcontest" <${SMTP_USER}>`, // sender address
       to: SMTP_USER, // list of recipients
       subject: "Sketch Upload", // subject line
       html: `<b>${userDisplayName} uploaded a sketch for contestId ${contestId}.</b>`, // HTML body
@@ -72,18 +72,18 @@ async function sendWinnerNotification(
     await transporter.verify();
 
     const info = await transporter.sendMail({
-      from: `"AniWeek" <${SMTP_USER}>`,
+      from: `"aniweekcontest" <${SMTP_USER}>`,
       to: email,
       subject: `Congratulations! You won ${ordinal} place!`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #6c63ff;">Congratulations, ${displayName}!</h1>
-          <p>Your sketch for <strong>${characterName}</strong> won <strong>${ordinal} place</strong> in this week's AniWeek contest!</p>
+          <p>Your sketch for <strong>${characterName}</strong> won <strong>${ordinal} place</strong> in this week's contest!</p>
           <p style="font-size: 1.2em;">Your prize: <strong>${prize}</strong></p>
           <hr />
           <p>To receive your prize, please <strong>reply to this email with your GPay ID</strong> so we can send the payment to you.</p>
           <p>Thank you for participating, and keep drawing!</p>
-          <p style="color: #888;">— AniWeek Team</p>
+          <p style="color: #888;">— AniWeekContest Team</p>
         </div>
       `,
     });
@@ -124,7 +124,7 @@ async function sendContactEmail(userEmail, userName, subject, body) {
     await transporter.verify();
 
     const info = await transporter.sendMail({
-      from: `"AniWeek" <${SMTP_USER}>`,
+      from: `"aniweekcontest" <${SMTP_USER}>`,
       to: SMTP_USER,
       replyTo: userEmail,
       subject: `[Contact] ${subject}`,
@@ -175,7 +175,7 @@ async function sendRejectionNotification(email, displayName, reason) {
     await transporter.verify();
 
     const info = await transporter.sendMail({
-      from: `"AniWeek" <${SMTP_USER}>`,
+      from: `"aniweekcontest" <${SMTP_USER}>`,
       to: email,
       subject: "Your sketch has been rejected",
       html: `
@@ -185,7 +185,7 @@ async function sendRejectionNotification(email, displayName, reason) {
           <p><strong>Reason:</strong> ${reason}</p>
           <hr />
           <p>You can upload a new sketch for the current contest. If you believe this was a mistake, please contact us.</p>
-          <p style="color: #888;">— AniWeek Team</p>
+          <p style="color: #888;">— AniWeekContest Team</p>
         </div>
       `,
     });
