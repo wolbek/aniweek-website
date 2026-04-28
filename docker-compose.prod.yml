@@ -33,6 +33,8 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/aniweek
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    volumes:
+      - ./backend/gcp-service-account-key.json:/app/gcp-service-account-key.json:ro
     networks:
       - aniweek-net
 

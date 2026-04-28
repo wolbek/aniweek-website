@@ -108,9 +108,13 @@ export class HomeComponent implements OnInit {
   countdownMinutes = signal(0);
   countdownSeconds = signal(0);
 
-  contestEnded = signal(false); // No need but just calculating it for now. May use in future
+  contestEnded = signal(false);
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
   startCountDown(startDateStr: string, endDateStr: string) {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
     this.contestEnded.set(false);
     const tick = () => {
       const now = Date.now();
@@ -123,7 +127,8 @@ export class HomeComponent implements OnInit {
       this.countdownMinutes.set(Math.floor((diff / (1000 * 60)) % 60));
       this.countdownSeconds.set(Math.floor((diff / 1000) % 60));
     };
-    setInterval(tick, 1000);
+    tick();
+    this.countdownInterval = setInterval(tick, 1000);
   }
 
   // Image Select

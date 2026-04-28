@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 
 const {
   generateSignedUploadUrl,
@@ -9,7 +10,10 @@ const {
   deleteObject,
 } = require("../services/gcs");
 
-const { sendUploadNotificationToAdmin } = require("../services/mailer");
+const {
+  sendUploadNotificationToAdmin,
+  sendRejectionNotification,
+} = require("../services/mailer");
 const requireAdmin = require("../middleware/admin");
 
 const requireAuth = (req, res, next) => {
@@ -34,8 +38,13 @@ const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm"]);
 async function getActiveContestId() {
   const cache = await redis.get(KEYS.ACTIVE_CONTEST);
   if (cache) {
-    const parsedCache = JSON.stringify(cache);
-    if (parsedCache?._id) return parsedCache._id;
+    try {
+      const parsedCache = typeof cache === "string" ? JSON.parse(cache) : cache;
+      if (parsedCache?._id)
+        return mongoose.Types.ObjectId.createFromHexString(parsedCache._id);
+    } catch {
+      // invalid cache, fall through to DB
+    }
   }
 
   const contest = await ContestModel.findOne(
@@ -202,8 +211,14 @@ router.get("/", async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const skip = (page - 1) * PAGE_SIZE;
 
+    const matchFilter = { contestId: contestId };
+
+    if (!req.user || req.user.role !== "admin") {
+      matchFilter.rejected = { $ne: true };
+    }
+
     const pipeline = [
-      { $match: { contestId: contestId } },
+      { $match: matchFilter },
       { $addFields: { voteCount: { $size: "$votes" } } },
       { $sort: { voteCount: -1, createdAt: 1 } },
       {
@@ -356,6 +371,19 @@ router.post("/reject/:id", requireAdmin, async (req, res) => {
 
     if (!sketch) {
       return res.status(404).json({ message: "Sketch not found." });
+    }
+
+    try {
+      const sketchOwner = await UserModel.findById(sketch.userId).lean();
+      if (sketchOwner?.email) {
+        await sendRejectionNotification(
+          sketchOwner.email,
+          sketchOwner.displayName,
+          rejectReason,
+        );
+      }
+    } catch (mailErr) {
+      console.error("[sketch] rejection email failed:", mailErr.message);
     }
 
     return res

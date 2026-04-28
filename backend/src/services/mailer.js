@@ -148,8 +148,62 @@ async function sendContactEmail(userEmail, userName, subject, body) {
   }
 }
 
+async function sendRejectionNotification(email, displayName, reason) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    console.warn(
+      "[mail] SMTP not configured — skipping rejection notification",
+    );
+    return;
+  }
+
+  const SMTP_HOST = process.env.SMTP_HOST;
+  const SMTP_USER = process.env.SMTP_USER;
+  const SMTP_PORT = process.env.SMTP_PORT;
+  const SMTP_PASS = process.env.SMTP_PASSWORD;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: false,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+      from: `"AniWeek" <${SMTP_USER}>`,
+      to: email,
+      subject: "Your sketch has been rejected",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #6c63ff;">Hi ${displayName},</h2>
+          <p>Unfortunately, your sketch submission has been <strong>rejected</strong> by an admin.</p>
+          <p><strong>Reason:</strong> ${reason}</p>
+          <hr />
+          <p>You can upload a new sketch for the current contest. If you believe this was a mistake, please contact us.</p>
+          <p style="color: #888;">— AniWeek Team</p>
+        </div>
+      `,
+    });
+
+    console.log(
+      `[mail] Rejection notification sent to ${email}: ${info.messageId}`,
+    );
+  } catch (err) {
+    console.error(
+      `[mail] Rejection notification to ${email} failed:`,
+      err.message,
+    );
+  }
+}
+
 module.exports = {
   sendUploadNotificationToAdmin,
   sendWinnerNotification,
   sendContactEmail,
+  sendRejectionNotification,
 };
