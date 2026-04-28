@@ -1,0 +1,146 @@
+.contest-rules {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+
+  > a {
+    display: inline-block;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  h1 {
+    margin-bottom: 1.25rem;
+  }
+
+  section {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+
+    h2 {
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--color-primary-light);
+    }
+  }
+
+  ol,
+  ul {
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  li {
+    color: var(--color-text-body);
+
+    strong {
+      color: var(--color-text);
+    }
+  }
+
+  p {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--color-text-body);
+
+    a {
+      font-weight: 700;
+    }
+  }
+}
+
+.prizes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.prize-card {
+  border-radius: var(--radius-sm);
+  padding: 1.25rem 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border: 2px solid transparent;
+}
+
+.prize-rank {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.prize-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.gold {
+  background: linear-gradient(135deg, #fffde7, #fff8e1);
+  border-color: #ffd600;
+
+  .prize-rank {
+    color: #a67c00;
+  }
+
+  .prize-amount {
+    color: #7c5e00;
+  }
+}
+
+.silver {
+  background: linear-gradient(135deg, #f5f5f5, #eeeeee);
+  border-color: #bdbdbd;
+
+  .prize-rank {
+    color: #616161;
+  }
+
+  .prize-amount {
+    color: #424242;
+  }
+}
+
+.bronze {
+  background: linear-gradient(135deg, #fbe9e7, #ffccbc);
+  border-color: #d4845f;
+
+  .prize-rank {
+    color: #8d5524;
+  }
+
+  .prize-amount {
+    color: #6d3a1a;
+  }
+}
+
+@media (max-width: 480px) {
+  .contest-rules section {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .prizes {
+    grid-template-columns: 1fr;
+  }
+
+  .prize-card {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .prize-amount {
+    font-size: 1.2rem;
+  }
+}

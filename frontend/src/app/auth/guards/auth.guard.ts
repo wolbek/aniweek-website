@@ -5,7 +5,6 @@ import { inject } from '@angular/core';
 export const authGuard: CanActivateFn = async () => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  // if returns true then the route is activated.
 
   if (authService.getToken()) {
     await authService.setUserData();
@@ -13,4 +12,18 @@ export const authGuard: CanActivateFn = async () => {
   }
 
   return router.createUrlTree(['/auth']);
+};
+
+export const optionalAuthGuard: CanActivateFn = async () => {
+  const authService = inject(AuthService);
+
+  if (authService.getToken()) {
+    try {
+      await authService.setUserData();
+    } catch {
+      authService.clearToken();
+    }
+  }
+
+  return true;
 };

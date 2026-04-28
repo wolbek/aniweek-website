@@ -1,288 +1,450 @@
-@if (auth.userDataSignal(); as user) {
-  <img [src]="user.photo" referrerpolicy="no-referrer" />
-  <h1>Welcome, {{ user.displayName }}</h1>
-  <p class="email">{{ user.email }}</p>
-} @else {
-  <p>Loading...</p>
-}
-
-<a routerLink="/rules">Rules</a>
-<a routerLink="/contact-us">Contact Us</a>
-<button (click)="logout()">Logout</button>
-
-@if (isAdmin()) {
-  <app-create-contest [activeContest]="activeContest()" (contestToggled)="onContestToggled()" />
-}
-
-@if (loadingContest()) {
-  <p>Loading Contest...</p>
-} @else if (activeContest(); as contest) {
-  @if (countdownVisible()) {
-    <div>Timer</div>
-    <div>
-      {{ countdownDays() }} Days : {{ countdownHours() }} Hours : {{ countdownMinutes() }} Minutes :
-      {{ countdownSeconds() }} Seconds
-    </div>
-  }
-
-  <div class="contest-character">
-    <h2>This Week's character: {{ contest.characterName }}</h2>
-    <img [src]="contest.characterImage" [alt]="contest.characterName" />
-    <p>
-      {{
-        isExpanded()
-          ? contest.characterDescription
-          : (contest.characterDescription | slice: 0 : 100)
-      }}
-      <span (click)="toggleExpand()">{{ isExpanded() ? '...see less' : '...see more' }}</span>
-    </p>
-  </div>
-
-  <div class="upload-section">
-    <h2>Upload Your Anime Sketch</h2>
-    <p>Select both your sketch image and a short video of you creating it.</p>
-    @if (myExistingSketch()) {
-      <div>
-        <strong>You've already submitted a sketch.</strong>
-        <p>
-          Uploading again will permanently replace your previous submission &mdash; the old image
-          and video will be deleted, and any votes on it will be reset.
-        </p>
-      </div>
-    }
-  </div>
-
-  <div class="upload-pair">
-    <!-- Image upload -->
-    <div class="upload-box">
-      <label class="file-label">
-        Choose Image
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          (change)="onImageSelected($event)"
-          hidden
-        />
-      </label>
-      @if (imageSelected()) {
-        <span class="file-name">{{ imageSelected()!.name }}</span>
-      }
-      @if (imagePreviewUrl()) {
-        <div>
-          <img [src]="imagePreviewUrl()" alt="Image preview" />
-        </div>
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a class="navbar-brand" routerLink="/home">AniWeek</a>
+    <div class="navbar-links">
+      <a routerLink="/rules">Rules</a>
+      @if (isLoggedIn()) {
+        <a routerLink="/contact-us">Contact Us</a>
       }
     </div>
-
-    <!-- Video upload -->
-    <div class="upload-box">
-      <label class="file-label">
-        Choose Video
-        <input
-          type="file"
-          accept="video/mp4,video/webm"
-          (change)="onVideoSelected($event)"
-          hidden
+    <div class="navbar-right">
+      @if (auth.userDataSignal(); as user) {
+        <img
+          class="navbar-avatar"
+          [src]="user.photo || defaultAvatar"
+          (error)="$event.target.src = defaultAvatar"
+          referrerpolicy="no-referrer"
         />
-      </label>
-      @if (videoSelected()) {
-        <span class="file-name">{{ videoSelected()!.name }}</span>
-      }
-      @if (videoError()) {
-        <p class="error">{{ videoError() }}</p>
-      }
-      @if (videoPreviewUrl()) {
-        <div class="preview">
-          <video [src]="videoPreviewUrl()" controls></video>
-        </div>
+        <span class="navbar-user-name">{{ user.displayName }}</span>
+        <button class="btn btn-ghost btn-sm" (click)="logout()">Logout</button>
       } @else {
-        <span>Upload a short video (~10 seconds) of you creating this sketch.</span>
+        <a routerLink="/auth" class="btn btn-primary btn-sm">Login</a>
       }
     </div>
   </div>
+</nav>
 
-  <button (click)="onUploadClick()" [disabled]="!canUpload()">
-    @if (uploading()) {
-      Uploading...
-    } @else {
-      Upload sketch & video
+<div class="page-container">
+  @if (isAdmin()) {
+    <app-create-contest [activeContest]="activeContest()" (contestToggled)="onContestToggled()" />
+  }
+
+  @if (loadingContest()) {
+    <p class="loading-text">Loading Contest...</p>
+  } @else if (activeContest(); as contest) {
+    <!-- Countdown Banner -->
+    @if (countdownVisible()) {
+      <div class="countdown-banner">
+        <span class="countdown-label">Contest Ends In</span>
+        <div class="countdown-segments">
+          <div class="countdown-segment">
+            <span class="countdown-value">{{ countdownDays() }}</span>
+            <span class="countdown-unit">Days</span>
+          </div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-segment">
+            <span class="countdown-value">{{ countdownHours() }}</span>
+            <span class="countdown-unit">Hours</span>
+          </div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-segment">
+            <span class="countdown-value">{{ countdownMinutes() }}</span>
+            <span class="countdown-unit">Mins</span>
+          </div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-segment">
+            <span class="countdown-value">{{ countdownSeconds() }}</span>
+            <span class="countdown-unit">Secs</span>
+          </div>
+        </div>
+      </div>
     }
-  </button>
 
-  @if (imageSelected() || videoSelected()) {
-    <button (click)="clearSelection()" [disabled]="uploading()">Cancel</button>
-  }
+    <!-- Contest Character -->
+    <div class="contest-character card">
+      <h2>This Week's character: {{ contest.characterName }}</h2>
+      <img class="character-img" [src]="contest.characterImage" [alt]="contest.characterName" />
+      <p class="character-desc">
+        {{
+          isExpanded()
+            ? contest.characterDescription
+            : (contest.characterDescription | slice: 0 : 100)
+        }}
+        <span class="toggle-expand" (click)="toggleExpand()">{{
+          isExpanded() ? '...see less' : '...see more'
+        }}</span>
+      </p>
+    </div>
 
-  @if (uploadError()) {
-    <p>{{ uploadError() }}</p>
-  }
+    <!-- Upload Section (logged in only) -->
+    @if (isLoggedIn()) {
+      <div class="upload-section card">
+        <h2>Upload Your Anime Sketch</h2>
+        <p>Select both your sketch image and a short video of you creating it.</p>
+        @if (myExistingSketch()) {
+          <div class="upload-warning">
+            <strong>You've already submitted a sketch.</strong>
+            <p>
+              Uploading again will permanently replace your previous submission &mdash; the old
+              image and video will be deleted, and any votes on it will be reset.
+            </p>
+          </div>
+        }
 
-  <section class="gallery-section">
-    <h2>Community sketches</h2>
-    @if (loadingSketches()) {
-      <p>Loading sketches</p>
-    } @else if (sketches().length === 0) {
-      <p>No sketches yet. Be the first to upload!</p>
-    } @else {
-      @for (sketch of sketches(); track sketch._id) {
-        <div class="sketch-wrapper">
-          <img [src]="sketch.imageUrl" loading="lazy" />
-
-          <button (click)="openImage(sketch.imageUrl)">O</button>
-
-          @if (sketch.rejected) {
-            <span>Rejected by Admin</span>
-          }
-
-          @if (sketch.photo) {
-            <img [src]="sketch.photo" [alt]="sketch.displayName" referrerpolicy="no-referrer" />
-            <span>{{ sketch.displayName }}</span>
-            <time>{{ sketch.createdAt | date: 'mediumDate' }}</time>
-          }
-
-          @if (sketch.rejected && sketch.rejectedReason) {
-            <p>Reason: {{ sketch.rejectedReason }}</p>
-          }
-
-          @if (sketch.rejected) {
-            Voting Disabled
-          } @else {
-            <button (click)="toggleVote(sketch)">{{ sketch.hasVoted ? 'Voted' : 'Upvote' }}</button>
-          }
-
-          <span>{{ sketch.votes }} {{ sketch.votes === 1 ? 'vote' : 'votes' }}</span>
-
-          @if (sketch.videoUrl) {
-            <button (click)="openVideo(sketch.videoUrl!)">Watch Creation Video</button>
-          }
-
-          @if (isAdmin()) {
-            @if (!sketch.rejected) {
-              <button (click)="openRejectForm(sketch)">Not considered for contest</button>
-            } @else {
-              <button (click)="unreject(sketch)">Restore</button>
+        <div class="upload-pair">
+          <div class="upload-box">
+            <span class="upload-box-title">Sketch Image</span>
+            <span class="upload-box-hint">JPEG, PNG, or WebP &mdash; max 2 MB</span>
+            <label class="file-label btn btn-primary">
+              Choose Image
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                (change)="onImageSelected($event)"
+                hidden
+              />
+            </label>
+            @if (imageSelected()) {
+              <span class="file-name">{{ imageSelected()!.name }}</span>
             }
-          }
+            @if (imagePreviewUrl()) {
+              <div class="upload-preview">
+                <img [src]="imagePreviewUrl()" alt="Image preview" />
+              </div>
+            }
+          </div>
 
-          @if (sketch.isOwner) {
-            <button (click)="requestDelete(sketch)">Delete</button>
+          <div class="upload-box">
+            <span class="upload-box-title">Creation Video</span>
+            <span class="upload-box-hint">MP4 or WebM &mdash; max 30 MB</span>
+            <label class="file-label btn btn-primary">
+              Choose Video
+              <input
+                type="file"
+                accept="video/mp4,video/webm"
+                (change)="onVideoSelected($event)"
+                hidden
+              />
+            </label>
+            @if (videoSelected()) {
+              <span class="file-name">{{ videoSelected()!.name }}</span>
+            }
+            @if (videoError()) {
+              <p class="error">{{ videoError() }}</p>
+            }
+            @if (videoPreviewUrl()) {
+              <div class="upload-preview">
+                <video [src]="videoPreviewUrl()" controls></video>
+              </div>
+            } @else {
+              <span class="upload-box-hint"
+                >Upload a short video (~10 seconds) of you creating this sketch.</span
+              >
+            }
+          </div>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn btn-primary" (click)="onUploadClick()" [disabled]="!canUpload()">
+            @if (uploading()) {
+              Uploading...
+            } @else {
+              Upload Sketch & Video
+            }
+          </button>
+
+          @if (imageSelected() || videoSelected()) {
+            <button class="btn btn-ghost" (click)="clearSelection()" [disabled]="uploading()">
+              Cancel
+            </button>
           }
         </div>
-      }
 
-      @if (totalPages() > 1) {
-        <div class="pagination">
-          <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1">
-            Previous
-          </button>
-          <span>Page {{ currentPage() }} of {{ totalPages() }}</span>
-          <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()">
-            Next
-          </button>
-        </div>
-      }
-    }
-  </section>
-
-  @if (activeVideoUrl()) {
-    <div>
-      <button (click)="closeVideo()">Close</button>
-      <video [src]="activeVideoUrl()" controls autoplay></video>
-    </div>
-  }
-
-  @if (activeImageUrl()) {
-    <div>
-      <button (click)="closeImage()">Close</button>
-      <img [src]="activeImageUrl()" />
-    </div>
-  }
-
-  @if (deleteSketchId()) {
-    <h3>Delete your submission?</h3>
-    <p>
-      This will permanently remove your sketch image, video, and any votes it has received. This
-      cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <button (click)="cancelDelete()" [disabled]="deleting()">Cancel</button>
-      <button (click)="confirmDelete()" [disabled]="deleting()">
-        @if (deleting()) {
-          Deleting...
-        } @else {
-          Delete
-        }
-      </button>
-    </div>
-  }
-
-  @if (rejectingSketch(); as target) {
-    <h3>Mark as not considered</h3>
-    <p>
-      The artist <strong>{{ target.displayName }}</strong> will be emailed the reason below. Their
-      sketch will be hidden from non-admin users.
-    </p>
-
-    <textarea
-      rows="4"
-      maxlength="1000"
-      placeholder="Reason for rejection (will be emailed to the artist)"
-      [ngModel]="rejectReason()"
-      (ngModelChange)="rejectReason.set($event)"
-      [disabled]="rejecting()"
-    ></textarea>
-    @if (rejectError()) {
-      <p>{{ rejectError() }}</p>
-    }
-    <div class="modal-actions">
-      <button (click)="cancelReject()" [disabled]="rejecting()">Cancel</button>
-      <button (click)="submitReject()" [disabled]="rejecting() || !rejectReason().trim()">
-        @if (rejecting()) {
-          Submitting...
-        } @else {
-          Mark Rejected and Send Email
-        }
-      </button>
-    </div>
-  }
-
-  <app-livechat />
-} @else {
-  <div>
-    <h2>No Active Contest</h2>
-    <p>There's no contest running right now. Check back soon!</p>
-  </div>
-}
-
-@if (loadingWinners()) {
-  <p>Loading previous contest winners...</p>
-} @else if (prevContestWinners(); as winnersData) {
-  <p>Previous contest character: {{ winnersData.characterName }}</p>
-  <img [src]="winnersData.characterImage" [alt]="winnersData.characterName" />
-
-  @if (winnersData.winners.length === 0) {
-    <p>No winners for the last contest.</p>
-  } @else {
-    @for (winner of winnersData.winners; track winner.rank) {
-      <div>
-        @switch (winner.rank) {
-          @case (1) {
-            1st
-          }
-          @case (2) {
-            2nd
-          }
-          @case (3) {
-            3rd
-          }
+        @if (uploadError()) {
+          <p class="error">{{ uploadError() }}</p>
         }
       </div>
-      <img [src]="winner.sketchImageUrl" alt="winning sketch" />
-      @if (winner.photo) {
-        <img [src]="winner.photo" [alt]="winner.displayName" referrerpolicy="no-referrer" />
-      }
-      <span>{{ winner.displayName }}</span>
-      <span>{{ winner.prize }}</span>
+    } @else {
+      <!-- Login prompt for guests -->
+      <div class="login-prompt">
+        <span>&#9997;</span>
+        <div>
+          <strong>Want to participate?</strong>
+          <p>Login to take part in the competition and upload your sketch.</p>
+        </div>
+        <a routerLink="/auth" class="btn btn-primary">Login to Join</a>
+      </div>
     }
+
+    <!-- Gallery Section -->
+    <section class="gallery-section">
+      <h2>Community Sketches</h2>
+      @if (loadingSketches()) {
+        <p class="loading-text">Loading sketches...</p>
+      } @else if (sketches().length === 0) {
+        <p class="empty-text">No sketches yet. Be the first to upload!</p>
+      } @else {
+        <div class="sketch-grid">
+          @for (sketch of sketches(); track sketch._id) {
+            <div class="sketch-card" [class.rejected]="sketch.rejected">
+              <div class="sketch-img-wrap" (click)="openImage(sketch.imageUrl)">
+                <img [src]="sketch.imageUrl" loading="lazy" />
+                <div class="zoom-overlay">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    <line x1="11" y1="8" x2="11" y2="14" />
+                    <line x1="8" y1="11" x2="14" y2="11" />
+                  </svg>
+                </div>
+              </div>
+
+              @if (sketch.rejected) {
+                <span class="rejected-badge">Rejected by Admin</span>
+              }
+
+              <div class="sketch-meta">
+                <img
+                  class="sketch-avatar"
+                  [src]="sketch.photo || defaultAvatar"
+                  [alt]="sketch.displayName"
+                  (error)="$event.target.src = defaultAvatar"
+                  referrerpolicy="no-referrer"
+                />
+                <div class="sketch-user">
+                  <span class="sketch-name">{{ sketch.displayName }}</span>
+                  <time class="sketch-date">{{ sketch.createdAt | date: 'mediumDate' }}</time>
+                </div>
+              </div>
+
+              @if (sketch.rejected && sketch.rejectedReason) {
+                <p class="reject-reason">Reason: {{ sketch.rejectedReason }}</p>
+              }
+
+              <div class="sketch-actions">
+                @if (sketch.rejected) {
+                  <span class="voting-disabled">Voting Disabled</span>
+                } @else if (isLoggedIn()) {
+                  <button
+                    class="vote-btn"
+                    [class.voted]="sketch.hasVoted"
+                    (click)="toggleVote(sketch)"
+                  >
+                    {{ sketch.hasVoted ? '&#10084; Voted' : '&#9825; Upvote' }}
+                  </button>
+                }
+                <span class="vote-count"
+                  >{{ sketch.votes }} {{ sketch.votes === 1 ? 'vote' : 'votes' }}</span
+                >
+              </div>
+
+              @if (sketch.videoUrl) {
+                <button class="btn btn-primary video-btn" (click)="openVideo(sketch.videoUrl!)">
+                  &#9654; Watch Creation Video
+                </button>
+              }
+
+              <div class="sketch-admin-actions">
+                @if (isAdmin()) {
+                  @if (!sketch.rejected) {
+                    <button class="btn btn-danger" (click)="openRejectForm(sketch)">
+                      Not considered for contest
+                    </button>
+                  } @else {
+                    <button class="btn btn-outline" (click)="unreject(sketch)">Restore</button>
+                  }
+                }
+
+                @if (sketch.isOwner) {
+                  <button class="btn btn-danger" (click)="requestDelete(sketch)">Delete</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            <button
+              class="btn btn-ghost"
+              (click)="goToPage(currentPage() - 1)"
+              [disabled]="currentPage() === 1"
+            >
+              Previous
+            </button>
+            <span class="pagination-info">Page {{ currentPage() }} of {{ totalPages() }}</span>
+            <button
+              class="btn btn-ghost"
+              (click)="goToPage(currentPage() + 1)"
+              [disabled]="currentPage() === totalPages()"
+            >
+              Next
+            </button>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- Video Lightbox -->
+    @if (activeVideoUrl()) {
+      <div class="lightbox-overlay" (click)="closeVideo()">
+        <div class="lightbox-content" (click)="$event.stopPropagation()">
+          <button class="lightbox-close" (click)="closeVideo()">&times;</button>
+          <video [src]="activeVideoUrl()" controls autoplay></video>
+        </div>
+      </div>
+    }
+
+    <!-- Image Lightbox -->
+    @if (activeImageUrl()) {
+      <div class="lightbox-overlay" (click)="closeImage()">
+        <div class="lightbox-content" (click)="$event.stopPropagation()">
+          <button class="lightbox-close" (click)="closeImage()">&times;</button>
+          <img [src]="activeImageUrl()" />
+        </div>
+      </div>
+    }
+
+    <!-- Delete Modal -->
+    @if (deleteSketchId()) {
+      <div class="modal-overlay">
+        <div class="modal-card">
+          <h3>Delete your submission?</h3>
+          <p>
+            This will permanently remove your sketch image, video, and any votes it has received.
+            This cannot be undone.
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" (click)="cancelDelete()" [disabled]="deleting()">
+              Cancel
+            </button>
+            <button class="btn btn-danger-fill" (click)="confirmDelete()" [disabled]="deleting()">
+              @if (deleting()) {
+                Deleting...
+              } @else {
+                Delete
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Reject Modal -->
+    @if (rejectingSketch(); as target) {
+      <div class="modal-overlay">
+        <div class="modal-card">
+          <h3>Mark as not considered</h3>
+          <p>
+            The artist <strong>{{ target.displayName }}</strong> will be emailed the reason below.
+            Their sketch will be hidden from non-admin users.
+          </p>
+
+          <textarea
+            rows="4"
+            maxlength="1000"
+            placeholder="Reason for rejection (will be emailed to the artist)"
+            [ngModel]="rejectReason()"
+            (ngModelChange)="rejectReason.set($event)"
+            [disabled]="rejecting()"
+          ></textarea>
+          @if (rejectError()) {
+            <p class="error">{{ rejectError() }}</p>
+          }
+          <div class="modal-actions">
+            <button class="btn btn-ghost" (click)="cancelReject()" [disabled]="rejecting()">
+              Cancel
+            </button>
+            <button
+              class="btn btn-danger-fill"
+              (click)="submitReject()"
+              [disabled]="rejecting() || !rejectReason().trim()"
+            >
+              @if (rejecting()) {
+                Submitting...
+              } @else {
+                Mark Rejected and Send Email
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (isLoggedIn()) {
+      <app-livechat />
+    }
+  } @else {
+    <div class="no-contest card">
+      <h2>No Active Contest</h2>
+      <p>There's no contest running right now. Check back soon!</p>
+    </div>
   }
-}
+
+  <!-- Previous Winners -->
+  @if (loadingWinners()) {
+    <p class="loading-text">Loading previous contest winners...</p>
+  } @else if (prevContestWinners(); as winnersData) {
+    <section class="winners-section">
+      <h2>Previous Contest</h2>
+      <div class="winners-character">
+        <img [src]="winnersData.characterImage" [alt]="winnersData.characterName" />
+        <span>{{ winnersData.characterName }}</span>
+      </div>
+
+      @if (winnersData.winners.length === 0) {
+        <p class="empty-text">No winners for the last contest.</p>
+      } @else {
+        <div class="winners-grid">
+          @for (winner of winnersData.winners; track winner.rank) {
+            <div class="winner-card">
+              <div class="winner-rank">
+                @switch (winner.rank) {
+                  @case (1) {
+                    <span class="rank rank-gold">1st</span>
+                  }
+                  @case (2) {
+                    <span class="rank rank-silver">2nd</span>
+                  }
+                  @case (3) {
+                    <span class="rank rank-bronze">3rd</span>
+                  }
+                }
+              </div>
+              <img class="winner-sketch" [src]="winner.sketchImageUrl" alt="winning sketch" />
+              <div class="winner-info">
+                <img
+                  class="winner-avatar"
+                  [src]="winner.photo || defaultAvatar"
+                  [alt]="winner.displayName"
+                  (error)="$event.target.src = defaultAvatar"
+                  referrerpolicy="no-referrer"
+                />
+                <span class="winner-name">{{ winner.displayName }}</span>
+                <span class="winner-prize">{{ winner.prize }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-brand">AniWeek</span>
+    <span class="footer-copy">&copy; {{ currentYear }} AniWeek. All rights reserved.</span>
+  </div>
+</footer>

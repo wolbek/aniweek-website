@@ -23,6 +23,7 @@ export class LivechatComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   chat = inject(LivechatService);
   messageText = '';
+  defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="%236c5ce7"/><text x="32" y="38" text-anchor="middle" fill="white" font-size="28" font-family="sans-serif">?</text></svg>')}`;
 
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
 

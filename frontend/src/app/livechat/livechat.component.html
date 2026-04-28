@@ -1,14 +1,4 @@
 <div class="livechat-wrapper">
-  @if (auth.userDataSignal()?.role === 'admin') {
-    <button class="toggle-btn" [class.active]="chat.active()" (click)="toggleLivechat()">
-      @if (chat.active()) {
-        <span class="dot live"></span> Stop Livechat
-      } @else {
-        <span class="dot"></span> Start Livechat
-      }
-    </button>
-  }
-
   @if (chat.active()) {
     <div class="chat-container">
       <div class="chat-header">
@@ -19,7 +9,13 @@
       <div class="messages" #messagesContainer>
         @for (msg of chat.messages(); track msg._id) {
           <div class="message" [class.admin-msg]="msg.role === 'admin'">
-            <img class="avatar" [src]="msg.photo" [alt]="msg.displayName" />
+            <img
+              class="avatar"
+              [src]="msg.photo || defaultAvatar"
+              [alt]="msg.displayName"
+              (error)="$event.target.src = defaultAvatar"
+              referrerpolicy="no-referrer"
+            />
             <div class="bubble">
               <div class="meta">
                 <span class="name">{{ msg.displayName }}</span>

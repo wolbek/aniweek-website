@@ -1,90 +1,142 @@
-@if (activeContest(); as contest) {
-  <h3>Active Contest</h3>
-  <img [src]="contest.characterImage" [alt]="contest.characterName" />
-  <p>{{ contest.characterName }}</p>
-  <div>
-    Contest runs: {{ contest.startDate | date: 'mediumDate' }} -
-    {{ contest.endDate | date: 'mediumDate' }}
-  </div>
-
-  <button (click)="cancelContest()" [disabled]="cancelling()">
-    @if (cancelling()) {
-      Cancelling...
-    } @else {
-      Cancel Contest
-    }
-  </button>
-  @if (cancelError()) {
-    <p>{{ cancelError() }}</p>
-  }
-} @else {
-  <button (click)="showModal()">Create contest</button>
-}
-
-@if (isModalVisible()) {
-  <h1>Create New Contest</h1>
-
-  <p>Search for a character:</p>
-  <input
-    type="text"
-    [(ngModel)]="searchQuery"
-    placeholder="Type a character name..."
-    [disabled]="searchingCharacter()"
-  />
-  <button (click)="searchCharacter()" [disabled]="!searchQuery.trim() || searchingCharacter()">
-    @if (searchingCharacter()) {
-      Searching...
-    } @else {
-      Search
-    }
-  </button>
-  @if (searchError()) {
-    <p>{{ searchError() }}</p>
-  }
-
-  @if (searchResults().length > 0) {
-    @for (result of searchResults(); track result.characterName) {
-      <div (click)="selectCharacter(result)">
-        <img [src]="result.characterImage" [alt]="result.characterName" />
-        <span>{{ result.characterName }}</span>
+<div class="admin-contest">
+  @if (activeContest(); as contest) {
+    <div class="active-contest card">
+      <h3>Active Contest</h3>
+      <div class="active-contest-info">
+        <img [src]="contest.characterImage" [alt]="contest.characterName" />
+        <div>
+          <p class="contest-name">{{ contest.characterName }}</p>
+          <p class="contest-dates">
+            Contest runs: {{ contest.startDate | date: 'mediumDate' }} -
+            {{ contest.endDate | date: 'mediumDate' }}
+          </p>
+        </div>
       </div>
-    }
+
+      <div class="active-contest-actions">
+        <button class="btn btn-danger" (click)="cancelContest()" [disabled]="cancelling()">
+          @if (cancelling()) {
+            Cancelling...
+          } @else {
+            Cancel Contest
+          }
+        </button>
+        <button
+          class="btn livechat-toggle-btn"
+          [class.livechat-active]="chat.active()"
+          (click)="chat.active() ? chat.stopLivechat() : chat.startLivechat()"
+        >
+          @if (chat.active()) {
+            <span class="dot live"></span> Stop Livechat
+          } @else {
+            <span class="dot"></span> Start Livechat
+          }
+        </button>
+      </div>
+      @if (cancelError()) {
+        <p class="error">{{ cancelError() }}</p>
+      }
+    </div>
+  } @else {
+    <button class="btn btn-primary" (click)="showModal()">Create contest</button>
   }
 
-  <p>Anime character:</p>
-  @if (loadingCharacter()) {
-    <p>Fetching Character...</p>
-  } @else if (character(); as char) {
-    <img [src]="char.characterImage" [alt]="char.characterName" />
-    <p>{{ char.characterName }}</p>
-    <p>
-      {{ isExpanded() ? char.characterDescription : (char.characterDescription | slice: 0 : 100) }}
-      <span (click)="toggleExpand()">{{ isExpanded() ? '...see less' : '...see more' }}</span>
-    </p>
+  @if (isModalVisible()) {
+    <div class="modal-overlay">
+      <div class="modal-card contest-modal">
+        <h2>Create New Contest</h2>
+
+        <div class="search-bar">
+          <p>Search for a character:</p>
+          <div class="search-input-row">
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              placeholder="Type a character name..."
+              [disabled]="searchingCharacter()"
+            />
+            <button
+              class="btn btn-primary"
+              (click)="searchCharacter()"
+              [disabled]="!searchQuery.trim() || searchingCharacter()"
+            >
+              @if (searchingCharacter()) {
+                Searching...
+              } @else {
+                Search
+              }
+            </button>
+          </div>
+          @if (searchError()) {
+            <p class="error">{{ searchError() }}</p>
+          }
+        </div>
+
+        @if (searchResults().length > 0) {
+          <div class="search-results">
+            @for (result of searchResults(); track result.characterName) {
+              <div class="search-result-item" (click)="selectCharacter(result)">
+                <img [src]="result.characterImage" [alt]="result.characterName" />
+                <span>{{ result.characterName }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="character-preview">
+          <p class="preview-label">Anime character:</p>
+          @if (loadingCharacter()) {
+            <p class="loading-text">Fetching Character...</p>
+          } @else if (character(); as char) {
+            <div class="preview-card">
+              <img [src]="char.characterImage" [alt]="char.characterName" />
+              <p class="preview-name">{{ char.characterName }}</p>
+              <p class="preview-desc">
+                {{
+                  isExpanded()
+                    ? char.characterDescription
+                    : (char.characterDescription | slice: 0 : 100)
+                }}
+                <span class="toggle-expand" (click)="toggleExpand()">{{
+                  isExpanded() ? '...see less' : '...see more'
+                }}</span>
+              </p>
+            </div>
+          }
+
+          @if (characterError()) {
+            <p class="error">{{ characterError() }}</p>
+          }
+        </div>
+
+        <div class="modal-actions">
+          <button
+            class="btn btn-outline"
+            (click)="rerollCharacter()"
+            [disabled]="loadingCharacter()"
+          >
+            @if (loadingCharacter()) {
+              Rolling...
+            } @else {
+              Reroll Character
+            }
+          </button>
+          <button class="btn btn-ghost" (click)="closeModal()" [disabled]="submitting()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" (click)="submitContest()" [disabled]="!canSubmit()">
+            @if (submitting()) {
+              Creating...
+            } @else {
+              Submit
+            }
+          </button>
+        </div>
+
+        @if (submitError()) {
+          <p class="error">{{ submitError() }}</p>
+        }
+      </div>
+    </div>
   }
-
-  @if (characterError()) {
-    <p>{{ characterError() }}</p>
-  }
-
-  <button (click)="rerollCharacter()" [disabled]="loadingCharacter()">
-    @if (loadingCharacter()) {
-      Rolling...
-    } @else {
-      Reroll Character
-    }
-  </button>
-
-  <button (click)="closeModal()" [disabled]="submitting()">Cancel</button>
-  <button (click)="submitContest()" [disabled]="!canSubmit()">
-    @if (submitting()) {
-      Creating...
-    } @else {
-      Submit
-    }
-  </button>
-
-  @if (submitError()) {
-    <p>{{ submitError() }}</p>
-  }
-}
+</div>

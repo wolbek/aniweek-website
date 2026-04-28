@@ -35,6 +35,9 @@ export class HomeComponent implements OnInit {
   private sketchService = inject(SketchService);
   private contestService = inject(ContestService);
 
+  currentYear = new Date().getFullYear();
+  defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="%236c5ce7"/><text x="32" y="38" text-anchor="middle" fill="white" font-size="28" font-family="sans-serif">?</text></svg>')}`;
+
   loadingContest = signal(true);
   activeContest = signal<Contest | null>(null);
 
@@ -44,6 +47,8 @@ export class HomeComponent implements OnInit {
 
   loadActiveContest(): void {
     this.loadingContest.set(true);
+    this.myExistingSketch.set(null);
+    this.sketches.set([]);
     this.contestService.getActiveContest().subscribe({
       next: (res) => {
         this.activeContest.set(res.contest);
@@ -51,7 +56,9 @@ export class HomeComponent implements OnInit {
 
         if (res.contest) {
           this.loadSketches();
-          this.loadMySketch();
+          if (this.isLoggedIn()) {
+            this.loadMySketch();
+          }
           this.countdownVisible.set(true);
           this.startCountDown(res.contest.startDate, res.contest.endDate);
         } else {
@@ -329,7 +336,10 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  // Is Admin
+  isLoggedIn(): boolean {
+    return !!this.auth.userDataSignal();
+  }
+
   isAdmin(): boolean {
     return this.auth.userDataSignal()?.role === 'admin';
   }
