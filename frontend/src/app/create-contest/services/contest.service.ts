@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface Contest {
   _id: string;
@@ -36,6 +36,24 @@ export interface PrevContestWinnersResponse {
   winners: WinnerEntry[];
 }
 
+interface JikanCharacterResponse {
+  data: {
+    name: string;
+    images: { jpg: { image_url: string } };
+    about: string | null;
+  };
+}
+
+interface JikanSearchResponse {
+  data: Array<{
+    name: string;
+    images: { jpg: { image_url: string } };
+    about: string | null;
+  }>;
+}
+
+const JIKAN_BASE = 'https://api.jikan.moe/v4';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -43,13 +61,31 @@ export class ContestService {
   private http = inject(HttpClient);
 
   fetchRandomCharacter(): Observable<CharacterData> {
-    return this.http.get<CharacterData>('/api/contest/random-character');
+    return this.http.get<JikanCharacterResponse>(`${JIKAN_BASE}/random/characters`).pipe(
+      map((res) => ({
+        characterName: res.data.name,
+        characterImage: res.data.images.jpg.image_url,
+        characterDescription: res.data.about || 'No description available.',
+      })),
+    );
   }
 
   searchCharacter(query: string): Observable<{ results: CharacterData[] }> {
-    return this.http.get<{ results: CharacterData[] }>('/api/contest/search-character', {
-      params: { q: query },
-    });
+    return this.http
+      .get<JikanSearchResponse>(`${JIKAN_BASE}/characters`, {
+        params: { q: query, limit: '10' },
+      })
+      .pipe(
+        map((res) => ({
+          results: (res.data || [])
+            .filter((c) => c?.name && c?.images?.jpg?.image_url)
+            .map((c) => ({
+              characterName: c.name,
+              characterImage: c.images.jpg.image_url,
+              characterDescription: c.about || 'No description available.',
+            })),
+        })),
+      );
   }
 
   getActiveContest(): Observable<ActiveContestResponse> {
@@ -57,7 +93,7 @@ export class ContestService {
   }
 
   createContest(characterData: CharacterData) {
-    return this.http.post<CharacterData>('api/contest', { characterData });
+    return this.http.post<CharacterData>('/api/contest', { characterData });
   }
 
   cancelContest() {

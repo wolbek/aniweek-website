@@ -57,8 +57,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `http://localhost:3000/auth/google/callback`, // For local
-      // callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`, // For prod
+      callbackURL: `http://localhost:3000/auth/google/callback`, // Local
+      // callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`, // Prod
       scope: ["openid", "profile", "email"],
       state: false,
     },
