@@ -7,86 +7,128 @@ const { redis, KEYS } = require("../services/redis");
 
 const router = express.Router();
 
+const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+};
+
 const JIKAN_API_URL_RANDOM_CHARACTER =
   "https://api.jikan.moe/v4/random/characters";
 
 const JIKAN_API_URL_SEARCH_CHARACTER = "https://api.jikan.moe/v4/characters";
 
-router.get("/random-character", requireAdmin, async (req, res) => {
+router.get("/random-character", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const retries = 3;
-    for (let i = 0; i < retries; i++) {
-      const jikanRes = await fetch(JIKAN_API_URL_RANDOM_CHARACTER);
-      if (!jikanRes.ok) {
-        return res.status(502).json({
-          message: "Failed to fetch character from Jikan API",
-        });
+    const maxRetries = 5;
+    for (let i = 0; i < maxRetries; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 1000 * i));
+
+      console.log(`[Jikan] random-character attempt ${i + 1}/${maxRetries}`);
+
+      let jikanRes;
+      try {
+        jikanRes = await fetch(JIKAN_API_URL_RANDOM_CHARACTER);
+      } catch (fetchErr) {
+        console.error(
+          `[Jikan] fetch threw on attempt ${i + 1}:`,
+          fetchErr.message,
+        );
+        continue;
       }
 
-      const { data: characterData } = await jikanRes.json();
+      console.log(`[Jikan] attempt ${i + 1} status: ${jikanRes.status}`);
 
-      if (
-        characterData?.name &&
-        characterData?.images?.jpg?.image_url &&
-        characterData?.about
-      ) {
+      if (jikanRes.status === 429) {
+        console.log(`[Jikan] rate limited, will retry...`);
+        continue;
+      }
+      if (!jikanRes.ok) {
+        const body = await jikanRes.text();
+        console.error(`[Jikan] non-ok response body:`, body.slice(0, 300));
+        continue;
+      }
+
+      const json = await jikanRes.json();
+      const characterData = json?.data;
+
+      if (characterData?.name && characterData?.images?.jpg?.image_url) {
         return res.status(200).json({
           characterName: characterData.name,
           characterImage: characterData.images.jpg.image_url,
-          characterDescription: characterData.about,
+          characterDescription:
+            characterData.about || "No description available.",
         });
       }
+
+      console.log(
+        `[Jikan] attempt ${i + 1} got incomplete data, missing:`,
+        !characterData?.name ? "name" : "",
+        !characterData?.images?.jpg?.image_url ? "image" : "",
+      );
     }
 
-    // After retries exhausted
-    return res.status(500).json({
-      message: "Could not fetch valid character data after retries",
+    return res.status(502).json({
+      message:
+        "Could not fetch a valid character after retries. Please try again.",
     });
   } catch (err) {
+    console.error("random-character error:", err.message);
     return res.status(500).json({
       message: "Error while fetching random character from Jikan",
     });
   }
 });
 
-router.get("/search-character", requireAdmin, async (req, res) => {
+router.get("/search-character", requireAuth, requireAdmin, async (req, res) => {
   try {
     const query = req.query.q?.trim();
     if (!query) {
       return res.status(400).json({ message: "Search query is required" });
     }
 
-    const jikanRes = await fetch(
-      `${JIKAN_API_URL_SEARCH_CHARACTER}?q=${encodeURIComponent(query)}&limit=10`,
-    );
+    const url = `${JIKAN_API_URL_SEARCH_CHARACTER}?q=${encodeURIComponent(query)}&limit=10`;
+    const maxRetries = 3;
 
-    if (!jikanRes.ok) {
-      return res.status(502).json({
-        message: "Failed to search characters from Jikan API",
-      });
-    }
+    for (let i = 0; i < maxRetries; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 600 * i));
 
-    const { data } = await jikanRes.json();
+      let jikanRes;
+      try {
+        jikanRes = await fetch(url);
+      } catch {
+        continue;
+      }
 
-    const results = (data || [])
-      .filter((c) => c?.name && c?.images?.jpg?.image_url)
-      .map((c) => {
-        return {
+      if (jikanRes.status === 429) continue;
+      if (!jikanRes.ok) continue;
+
+      const { data } = await jikanRes.json();
+
+      const results = (data || [])
+        .filter((c) => c?.name && c?.images?.jpg?.image_url)
+        .map((c) => ({
           characterName: c.name,
           characterImage: c.images.jpg.image_url,
           characterDescription: c.about || "No description available.",
-        };
-      });
+        }));
 
-    return res.status(200).json({ results });
+      return res.status(200).json({ results });
+    }
+
+    return res.status(502).json({
+      message: "Failed to search characters. Please try again.",
+    });
   } catch (err) {
+    console.error("search-character error:", err.message);
     return res.status(500).json({
       message: "Error while searching characters from Jikan",
     });
   }
 });
 
-router.post("/", requireAdmin, async (req, res) => {
+router.post("/", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { characterData } = req.body;
 
@@ -127,7 +169,7 @@ router.post("/", requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/cancel", requireAdmin, async (req, res) => {
+router.post("/cancel", requireAuth, requireAdmin, async (req, res) => {
   try {
     const result = await ContestModel.updateOne(
       { status: "active" },

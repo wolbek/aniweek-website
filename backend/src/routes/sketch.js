@@ -12,6 +12,13 @@ const {
 const { sendUploadNotificationToAdmin } = require("../services/mailer");
 const requireAdmin = require("../middleware/admin");
 
+const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+};
+
 const UserModel = require("../models/user");
 const SketchModel = require("../models/sketch");
 const ContestModel = require("../models/contest");
@@ -40,7 +47,7 @@ async function getActiveContestId() {
 }
 
 // Create GCP signed url for image and video and share to frontend for direct upload.
-router.post("/upload-urls", async (req, res) => {
+router.post("/upload-urls", requireAuth, async (req, res) => {
   const { imageContentType, videoContentType } = req.body;
 
   if (!ALLOWED_IMAGE_CONTENT_TYPES.has(imageContentType)) {
@@ -94,7 +101,7 @@ router.post("/upload-urls", async (req, res) => {
 });
 
 // Upload metadata after image and video upload
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { image, video } = req.body;
 
@@ -225,8 +232,12 @@ router.get("/", async (req, res) => {
         videoUrl: publicUrlForObject(sketch.videoObjectPath),
         createdAt: sketch.createdAt,
         votes: sketch.voteCount,
-        isOwner: sketch.userId._id.toString() === req.user._id,
-        hasVoted: sketch.votes.some((v) => v.toString() === req.user.userId),
+        isOwner: req.user
+          ? sketch.userId._id.toString() === req.user._id
+          : false,
+        hasVoted: req.user
+          ? sketch.votes.some((v) => v.toString() === req.user.userId)
+          : false,
         rejected: sketch.rejected,
         rejectedReason: sketch.rejectedReason,
       };
@@ -245,13 +256,17 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/me", async (req, res) => {
+router.get("/me", requireAuth, async (req, res) => {
   try {
     const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
     if (!dbUser) return res.status(404).json({ message: "User not found" });
 
+    const contestId = await getActiveContestId();
+    if (!contestId) return res.status(200).json(null);
+
     const sketch = await SketchModel.findOne({
       userId: dbUser._id,
+      contestId,
     }).populate("userId", ["displayName", "photo"]);
 
     if (!sketch) return res.status(200).json(null);
@@ -278,7 +293,7 @@ router.get("/me", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
     if (!dbUser) {
@@ -351,7 +366,7 @@ router.post("/reject/:id", requireAdmin, async (req, res) => {
   }
 });
 
-router.delete("/reject/:id", async (req, res) => {
+router.delete("/reject/:id", requireAuth, async (req, res) => {
   try {
     const sketch = await SketchModel.findOneAndUpdate(
       {
@@ -382,7 +397,7 @@ router.delete("/reject/:id", async (req, res) => {
   }
 });
 
-router.post("/vote/:id", async (req, res) => {
+router.post("/vote/:id", requireAuth, async (req, res) => {
   try {
     const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
     if (!dbUser) return res.status(404).json({ message: "User not found" });
@@ -416,7 +431,7 @@ router.post("/vote/:id", async (req, res) => {
   }
 });
 
-router.delete("/vote/:id", async (req, res) => {
+router.delete("/vote/:id", requireAuth, async (req, res) => {
   try {
     const dbUser = await UserModel.findOne({ userId: req.user.userId }).lean();
     if (!dbUser) return res.status(404).json({ message: "User not found" });

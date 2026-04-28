@@ -65,16 +65,22 @@
     <div class="contest-character card">
       <h2>This Week's character: {{ contest.characterName }}</h2>
       <img class="character-img" [src]="contest.characterImage" [alt]="contest.characterName" />
-      <p class="character-desc">
-        {{
-          isExpanded()
-            ? contest.characterDescription
-            : (contest.characterDescription | slice: 0 : 100)
-        }}
-        <span class="toggle-expand" (click)="toggleExpand()">{{
-          isExpanded() ? '...see less' : '...see more'
-        }}</span>
-      </p>
+      @if (
+        contest.characterDescription && contest.characterDescription !== 'No description available.'
+      ) {
+        <p class="character-desc">
+          {{
+            isExpanded()
+              ? contest.characterDescription
+              : (contest.characterDescription | slice: 0 : 100)
+          }}
+          @if (contest.characterDescription.length > 100) {
+            <span class="toggle-expand" (click)="toggleExpand()">{{
+              isExpanded() ? '...see less' : '...see more'
+            }}</span>
+          }
+        </p>
+      }
     </div>
 
     <!-- Upload Section (logged in only) -->

@@ -57,7 +57,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`,
+      callbackURL: `http://localhost:3000/auth/google/callback`, // For local
+      // callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`, // For prod
       scope: ["openid", "profile", "email"],
       state: false,
     },
@@ -108,12 +109,23 @@ const verifyJwt = (req, res, next) => {
     return res.status(401).json({ message: "No token" });
   }
   try {
-    // Auth token has the user details (userId, displayName, email, photo) so we are setting it to req.user
     req.user = jwt.verify(header.split(" ")[1], JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ message: "Invalid token" });
   }
+};
+
+const optionalJwt = (req, res, next) => {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    try {
+      req.user = jwt.verify(header.split(" ")[1], JWT_SECRET);
+    } catch {
+      // ignore invalid token for public routes
+    }
+  }
+  next();
 };
 
 app.get("/auth/user", verifyJwt, async (req, res) => {
@@ -127,9 +139,8 @@ app.get("/auth/user", verifyJwt, async (req, res) => {
   res.json({ userId, displayName, email, photo, role });
 });
 
-// Other routes
-app.use("/sketch", verifyJwt, sketchRoutes);
-app.use("/contest", verifyJwt, contestRoutes);
+app.use("/sketch", optionalJwt, sketchRoutes);
+app.use("/contest", optionalJwt, contestRoutes);
 app.use("/contact-us", verifyJwt, contactUsRoutes);
 
 // Socket.io livechat -----------------------------------------------------------

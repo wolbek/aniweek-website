@@ -91,16 +91,23 @@
             <div class="preview-card">
               <img [src]="char.characterImage" [alt]="char.characterName" />
               <p class="preview-name">{{ char.characterName }}</p>
-              <p class="preview-desc">
-                {{
-                  isExpanded()
-                    ? char.characterDescription
-                    : (char.characterDescription | slice: 0 : 100)
-                }}
-                <span class="toggle-expand" (click)="toggleExpand()">{{
-                  isExpanded() ? '...see less' : '...see more'
-                }}</span>
-              </p>
+              @if (
+                char.characterDescription &&
+                char.characterDescription !== 'No description available.'
+              ) {
+                <p class="preview-desc">
+                  {{
+                    isExpanded()
+                      ? char.characterDescription
+                      : (char.characterDescription | slice: 0 : 100)
+                  }}
+                  @if (char.characterDescription.length > 100) {
+                    <span class="toggle-expand" (click)="toggleExpand()">{{
+                      isExpanded() ? '...see less' : '...see more'
+                    }}</span>
+                  }
+                </p>
+              }
             </div>
           }
 
