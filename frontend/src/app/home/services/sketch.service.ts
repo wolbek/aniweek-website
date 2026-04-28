@@ -18,6 +18,9 @@ export interface Sketch {
 
 export interface Sketches {
   sketches: Sketch[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
 }
 
 interface VoteResponse {
@@ -90,8 +93,8 @@ export class SketchService {
     }
   }
 
-  fetchSketches(): Observable<Sketches> {
-    return this.http.get<Sketches>('/api/sketch');
+  fetchSketches(page: number = 1): Observable<Sketches> {
+    return this.http.get<Sketches>('/api/sketch', { params: { page: page.toString() } });
   }
 
   fetchMySketch(): Observable<Sketch> {

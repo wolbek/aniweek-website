@@ -314,7 +314,7 @@ cron.schedule(
       const topSketches = await SketchModel.aggregate([
         { $match: { contestId: expiredContest._id, rejected: { $ne: true } } },
         { $addFields: { voteCount: { $size: "$votes" } } },
-        { $sort: { voteCount: -1 } },
+        { $sort: { voteCount: -1, createdAt: 1 } },
         { $limit: 3 },
       ]);
 

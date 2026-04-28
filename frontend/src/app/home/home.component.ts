@@ -251,12 +251,16 @@ export class HomeComponent implements OnInit {
 
   loadingSketches = signal(false);
   sketches = signal<Sketch[]>([]);
+  currentPage = signal(1);
+  totalPages = signal(1);
 
-  loadSketches() {
+  loadSketches(page: number = 1) {
     this.loadingSketches.set(true);
-    this.sketchService.fetchSketches().subscribe({
+    this.sketchService.fetchSketches(page).subscribe({
       next: (res: Sketches) => {
         this.sketches.set(res.sketches);
+        this.currentPage.set(res.page);
+        this.totalPages.set(res.totalPages);
         this.loadingSketches.set(false);
       },
       error: () => {
@@ -264,6 +268,11 @@ export class HomeComponent implements OnInit {
         this.loadingSketches.set(false);
       },
     });
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages() || page === this.currentPage()) return;
+    this.loadSketches(page);
   }
 
   // Load user's sketch (gets used to update myExistingSketch which gets used in component.html)

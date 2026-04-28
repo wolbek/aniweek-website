@@ -191,15 +191,32 @@ router.get("/", async (req, res) => {
       return res.status(404).json({ message: "No active contest" });
     }
 
-    const dbSketches = await SketchModel.find({
-      contestId: contestId,
-    })
-      .populate("userId", ["displayName", "photo"])
-      .lean();
+    const PAGE_SIZE = 20;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const skip = (page - 1) * PAGE_SIZE;
 
-    let shapedSketches = [];
+    const pipeline = [
+      { $match: { contestId: contestId } },
+      { $addFields: { voteCount: { $size: "$votes" } } },
+      { $sort: { voteCount: -1, createdAt: 1 } },
+      {
+        $facet: {
+          sketches: [{ $skip: skip }, { $limit: PAGE_SIZE }],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
 
-    shapedSketches = dbSketches.map((sketch) => {
+    const [result] = await SketchModel.aggregate(pipeline);
+    const totalCount = result.total[0]?.count || 0;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+    await SketchModel.populate(result.sketches, {
+      path: "userId",
+      select: "displayName photo",
+    });
+
+    const shapedSketches = result.sketches.map((sketch) => {
       return {
         _id: sketch._id,
         displayName: sketch.userId.displayName,
@@ -207,15 +224,20 @@ router.get("/", async (req, res) => {
         imageUrl: publicUrlForObject(sketch.imageObjectPath),
         videoUrl: publicUrlForObject(sketch.videoObjectPath),
         createdAt: sketch.createdAt,
-        votes: sketch.votes.length,
+        votes: sketch.voteCount,
         isOwner: sketch.userId._id.toString() === req.user._id,
-        hasVoted: sketch.votes.includes(req.user.userId),
+        hasVoted: sketch.votes.some((v) => v.toString() === req.user.userId),
         rejected: sketch.rejected,
         rejectedReason: sketch.rejectedReason,
       };
     });
 
-    return res.status(200).json({ sketches: shapedSketches });
+    return res.status(200).json({
+      sketches: shapedSketches,
+      page,
+      totalPages,
+      totalCount,
+    });
   } catch (err) {
     return res.status(500).json({
       message: "Error while fetching sketches",
