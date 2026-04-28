@@ -21,6 +21,14 @@ module "storage" {
   sketches_bucket_name = var.sketches_bucket_name
 }
 
+module "artifact_registry" {
+  source = "./modules/artifact-registry"
+
+  project_id      = var.project_id
+  region          = var.region
+  repository_name = var.repository_name
+}
+
 module "compute" {
   source = "./modules/compute"
 
@@ -29,4 +37,5 @@ module "compute" {
   zone         = var.zone
   vm_name      = var.vm_name
   machine_type = var.machine_type
+  service_account_email = var.service_account_email
 }

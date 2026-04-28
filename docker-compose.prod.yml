@@ -1,0 +1,59 @@
+# Production compose file — pulls pre-built images from Artifact Registry.
+# Usage: REGISTRY=<region>-docker.pkg.dev/<project>/<repo> docker compose -f docker-compose.prod.yml up -d
+#
+# The REGISTRY env var must be set before running, e.g.:
+#   export REGISTRY=asia-south1-docker.pkg.dev/my-gcp-project/aniweek
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - aniweek-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - aniweek-net
+
+  backend:
+    image: ${REGISTRY}/backend:latest
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/aniweek
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - aniweek-net
+
+  frontend:
+    image: ${REGISTRY}/frontend:latest
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./cert.pem:/etc/nginx/ssl/cert.pem:ro
+      - ./key.pem:/etc/nginx/ssl/key.pem:ro
+    networks:
+      - aniweek-net
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  aniweek-net:
+    driver: bridge

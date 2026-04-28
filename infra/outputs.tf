@@ -17,3 +17,8 @@ output "vm_external_ip" {
   description = "Static external IP of the VM"
   value       = module.compute.vm_external_ip
 }
+
+output "artifact_registry_url" {
+  description = "Docker registry URL for pushing/pulling images"
+  value       = module.artifact_registry.repository_url
+}

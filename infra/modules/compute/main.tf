@@ -60,11 +60,26 @@ resource "google_compute_instance" "aniweek" {
       systemctl start docker
     fi
 
-    echo "Docker and Docker Compose are ready."
-    echo "Deploy by copying your project to /opt/aniweek and running: cd /opt/aniweek && docker compose up -d"
+    # Install gcloud CLI if not present (needed for Docker credential helper)
+    if ! command -v gcloud &> /dev/null; then
+      curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+      echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" > /etc/apt/sources.list.d/google-cloud-sdk.list
+      apt-get update
+      apt-get install -y google-cloud-cli
+    fi
+
+    # Configure Docker to authenticate with Artifact Registry
+    gcloud auth configure-docker ${var.region}-docker.pkg.dev --quiet
+
+    # Prepare project directory
+    mkdir -p /opt/aniweek
+
+    echo "Docker, Docker Compose, and Artifact Registry auth are ready."
+    echo "Deploy by pulling images: cd /opt/aniweek && docker compose pull && docker compose up -d"
   SCRIPT
 
   service_account {
+    email  = var.service_account_email
     scopes = ["cloud-platform"]
   }
 

@@ -27,3 +27,8 @@ variable "network" {
   type        = string
   default     = "default"
 }
+
+variable "service_account_email" {
+  description = "Email of the service account to attach to the VM"
+  type        = string
+}

@@ -30,3 +30,14 @@ variable "machine_type" {
   type        = string
   default     = "e2-small"
 }
+
+variable "repository_name" {
+  description = "Name of the Artifact Registry Docker repository"
+  type        = string
+  default     = "aniweek"
+}
+
+variable "service_account_email" {
+  description = "Email of the service account to attach to the VM"
+  type        = string
+}
