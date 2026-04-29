@@ -342,7 +342,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/reject/:id", requireAdmin, async (req, res) => {
+router.post("/reject/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const rejectReason = req.body.rejectReason.trim();
     if (!rejectReason) {
@@ -395,7 +395,7 @@ router.post("/reject/:id", requireAdmin, async (req, res) => {
   }
 });
 
-router.delete("/reject/:id", requireAuth, async (req, res) => {
+router.delete("/reject/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const sketch = await SketchModel.findOneAndUpdate(
       {
