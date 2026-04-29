@@ -356,6 +356,14 @@ $nav-bg: #3b3190;
   .btn {
     flex-shrink: 0;
   }
+
+  .btn-primary {
+    color: #fff;
+
+    &:hover {
+      color: #fff;
+    }
+  }
 }
 
 // ── Upload Section ──

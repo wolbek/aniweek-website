@@ -252,7 +252,7 @@ router.get("/", async (req, res) => {
           ? sketch.userId._id.toString() === req.user._id
           : false,
         hasVoted: req.user
-          ? sketch.votes.some((v) => v.toString() === req.user.userId)
+          ? sketch.votes.some((v) => v.toString() === req.user._id)
           : false,
         rejected: sketch.rejected,
         rejectedReason: sketch.rejectedReason,
