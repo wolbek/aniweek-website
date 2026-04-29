@@ -13,6 +13,7 @@ const {
 const {
   sendUploadNotificationToAdmin,
   sendRejectionNotification,
+  sendRestorationNotification,
 } = require("../services/mailer");
 const requireAdmin = require("../middleware/admin");
 
@@ -413,6 +414,18 @@ router.delete("/reject/:id", requireAuth, async (req, res) => {
 
     if (!sketch) {
       return res.status(404).json({ message: "Sketch not found." });
+    }
+
+    try {
+      const sketchOwner = await UserModel.findById(sketch.userId).lean();
+      if (sketchOwner?.email) {
+        await sendRestorationNotification(
+          sketchOwner.email,
+          sketchOwner.displayName,
+        );
+      }
+    } catch (mailErr) {
+      console.error("[sketch] restoration email failed:", mailErr.message);
     }
 
     return res

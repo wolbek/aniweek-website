@@ -201,9 +201,61 @@ async function sendRejectionNotification(email, displayName, reason) {
   }
 }
 
+async function sendRestorationNotification(email, displayName) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    console.warn(
+      "[mail] SMTP not configured — skipping restoration notification",
+    );
+    return;
+  }
+
+  const SMTP_HOST = process.env.SMTP_HOST;
+  const SMTP_USER = process.env.SMTP_USER;
+  const SMTP_PORT = process.env.SMTP_PORT;
+  const SMTP_PASS = process.env.SMTP_PASSWORD;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: false,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+      from: `"aniweekcontest" <${SMTP_USER}>`,
+      to: email,
+      subject: "Your sketch has been restored!",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #6c63ff;">Good news, ${displayName}!</h2>
+          <p>Your sketch submission has been <strong>restored</strong> by an admin and is back in the contest.</p>
+          <p>Your sketch is now visible in the gallery and eligible for voting again.</p>
+          <p style="color: #888;">— AniWeekContest Team</p>
+        </div>
+      `,
+    });
+
+    console.log(
+      `[mail] Restoration notification sent to ${email}: ${info.messageId}`,
+    );
+  } catch (err) {
+    console.error(
+      `[mail] Restoration notification to ${email} failed:`,
+      err.message,
+    );
+  }
+}
+
 module.exports = {
   sendUploadNotificationToAdmin,
   sendWinnerNotification,
   sendContactEmail,
   sendRejectionNotification,
+  sendRestorationNotification,
 };

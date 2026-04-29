@@ -341,6 +341,12 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  mobileMenuOpen = signal(false);
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen.update((v) => !v);
+  }
+
   isLoggedIn(): boolean {
     return !!this.auth.userDataSignal();
   }
@@ -366,6 +372,7 @@ export class HomeComponent implements OnInit {
       next: () => {
         this.deleting.set(false);
         this.deleteSketchId.set(null);
+        this.myExistingSketch.set(null);
         this.sketches.update((list) => {
           return list.filter((sk) => sk._id !== id);
         });

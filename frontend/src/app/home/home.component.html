@@ -2,13 +2,15 @@
 <nav class="navbar">
   <div class="navbar-inner">
     <a class="navbar-brand" routerLink="/home">AniWeekContest</a>
-    <div class="navbar-links">
+
+    <!-- Desktop nav -->
+    <div class="navbar-links desktop-only">
       <a routerLink="/rules">Rules</a>
       @if (isLoggedIn()) {
         <a routerLink="/contact-us">Contact Us</a>
       }
     </div>
-    <div class="navbar-right">
+    <div class="navbar-right desktop-only">
       @if (auth.userDataSignal(); as user) {
         <img
           class="navbar-avatar"
@@ -22,7 +24,35 @@
         <a routerLink="/auth" class="btn btn-primary btn-sm">Login</a>
       }
     </div>
+
+    <!-- Hamburger button (mobile) -->
+    <button class="hamburger-btn" (click)="toggleMobileMenu()" [class.open]="mobileMenuOpen()">
+      <span></span><span></span><span></span>
+    </button>
   </div>
+
+  <!-- Mobile drawer -->
+  @if (mobileMenuOpen()) {
+    <div class="mobile-menu">
+      @if (auth.userDataSignal(); as user) {
+        <div class="mobile-menu-profile">
+          <img
+            [src]="user.photo || defaultAvatar"
+            (error)="$event.target.src = defaultAvatar"
+            referrerpolicy="no-referrer"
+          />
+          <span>{{ user.displayName }}</span>
+        </div>
+      }
+      <a routerLink="/rules" (click)="toggleMobileMenu()">Rules</a>
+      @if (isLoggedIn()) {
+        <a routerLink="/contact-us" (click)="toggleMobileMenu()">Contact Us</a>
+        <button class="mobile-menu-logout" (click)="logout(); toggleMobileMenu()">Logout</button>
+      } @else {
+        <a routerLink="/auth" (click)="toggleMobileMenu()">Login</a>
+      }
+    </div>
+  }
 </nav>
 
 <div class="page-container">
